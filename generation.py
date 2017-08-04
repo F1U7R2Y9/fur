@@ -14,7 +14,7 @@ def generate_argument(c_string_literal):
             '\\': r'\\',
         }.get(ch, ch)
 
-    return '"{}"'.format(
+    return 'stringLiteral(runtime, "{}")'.format(
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
 
