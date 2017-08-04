@@ -16,6 +16,46 @@ CStringLiteral = collections.namedtuple(
     ],
 )
 
+CAdditionExpression = collections.namedtuple(
+    'CAdditionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CSubtractionExpression = collections.namedtuple(
+    'CSubtractionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CMultiplicationExpression = collections.namedtuple(
+    'CMultiplicationExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CIntegerDivisionExpression = collections.namedtuple(
+    'CIntegerDivisionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CModularDivisionExpression = collections.namedtuple(
+    'CModularDivisionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
 CFunctionCallStatement = collections.namedtuple(
     'CFunctionCallStatement',
     [
@@ -37,11 +77,28 @@ BUILTINS = {
     'print': ['stdio.h.'],
 }
 
-def transform_argument(builtin_dependencies, argument):
-    return {
-        parsing.IntegerLiteral: CIntegerLiteral,
-        parsing.StringLiteral: CStringLiteral,
-    }[type(argument)](value=argument.value)
+def transform_expression(builtin_dependencies, expression):
+
+    LITERAL_TYPE_MAPPING = {
+        parsing.FurIntegerLiteralExpression: CIntegerLiteral,
+        parsing.FurStringLiteralExpression: CStringLiteral,
+    }
+
+    if type(expression) in LITERAL_TYPE_MAPPING:
+        return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
+
+    INFIX_TYPE_MAPPING = {
+        parsing.FurAdditionExpression: CAdditionExpression,
+        parsing.FurSubtractionExpression: CSubtractionExpression,
+        parsing.FurMultiplicationExpression: CMultiplicationExpression,
+        parsing.FurIntegerDivisionExpression: CIntegerDivisionExpression,
+        parsing.FurModularDivisionExpression: CModularDivisionExpression,
+    }
+
+    return INFIX_TYPE_MAPPING[type(expression)](
+        left=transform_expression(builtin_dependencies, expression.left),
+        right=transform_expression(builtin_dependencies, expression.right),
+    )
 
 def transform_function_call_statement(builtin_dependencies, function_call):
     if function_call.name in BUILTINS.keys():
@@ -49,11 +106,10 @@ def transform_function_call_statement(builtin_dependencies, function_call):
 
         return CFunctionCallStatement(
             name='builtin$' + function_call.name,
-            arguments=tuple(transform_argument(builtin_dependencies, arg) for arg in function_call.arguments),
+            arguments=tuple(transform_expression(builtin_dependencies, arg) for arg in function_call.arguments),
         )
 
     raise Exception()
-
 
 def transform(program):
     builtins = set()

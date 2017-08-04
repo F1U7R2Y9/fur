@@ -113,6 +113,62 @@ Object stringLiteral(Runtime* runtime, const char* literal)
   return result;
 }
 
+// TODO Make this conditionally added
+Object builtin$add(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = left.instance.integer + right.instance.integer;
+  return result;
+}
+
+Object builtin$subtract(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = left.instance.integer - right.instance.integer;
+  return result;
+}
+
+Object builtin$multiply(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = left.instance.integer * right.instance.integer;
+  return result;
+}
+
+Object builtin$integerDivide(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = left.instance.integer / right.instance.integer;
+  return result;
+}
+
+Object builtin$modularDivide(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = left.instance.integer % right.instance.integer;
+  return result;
+}
+
 {% if 'print' in builtins %}
 void builtin$print(Object output)
 {

@@ -30,21 +30,61 @@ def _zero_or_more_parser(formatter, parser):
 
     return result_parser
 
-IntegerLiteral = collections.namedtuple(
-    'IntegerLiteral',
+FurIntegerLiteralExpression = collections.namedtuple(
+    'FurIntegerLiteralExpression',
     [
         'value',
     ],
 )
 
-StringLiteral = collections.namedtuple(
-    'StringLiteral',
+FurStringLiteralExpression = collections.namedtuple(
+    'FurStringLiteralExpression',
     [
         'value',
     ],
 )
 
-def _integer_literal_parser(index, tokens):
+FurAdditionExpression = collections.namedtuple(
+    'FurAdditionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurSubtractionExpression = collections.namedtuple(
+    'FurSubtractionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurMultiplicationExpression = collections.namedtuple(
+    'FurMultiplicationExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurIntegerDivisionExpression = collections.namedtuple(
+    'FurIntegerDivisionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurModularDivisionExpression = collections.namedtuple(
+    'FurModularDivisionExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+def _integer_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
     if tokens[index].type != 'integer_literal':
@@ -52,9 +92,9 @@ def _integer_literal_parser(index, tokens):
     value = int(tokens[index].match)
     index += 1
 
-    return True, index, IntegerLiteral(value=value)
+    return True, index, FurIntegerLiteralExpression(value=value)
 
-def _string_literal_parser(index, tokens):
+def _string_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
     if tokens[index].type != 'single_quoted_string_literal':
@@ -62,9 +102,60 @@ def _string_literal_parser(index, tokens):
     value = tokens[index].match[1:-1]
     index += 1
 
-    return True, index, StringLiteral(value=value)
+    return True, index, FurStringLiteralExpression(value=value)
 
-_argument_parser = _or_parser(_integer_literal_parser, _string_literal_parser)
+def _literal_level_expression_parser(index, tokens):
+    return _or_parser(
+        _integer_literal_expression_parser,
+        _string_literal_expression_parser,
+    )(index, tokens)
+
+def _multiplication_level_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    success, index, result = _literal_level_expression_parser(index, tokens)
+
+    if not success:
+        return failure
+
+    while success and index < len(tokens) and tokens[index].type == 'multiplication_level_operator':
+        success = False
+
+        if index + 1 < len(tokens):
+            success, try_index, value = _literal_level_expression_parser(index + 1, tokens)
+
+        if success:
+            result = {
+                '*': FurMultiplicationExpression,
+                '//': FurIntegerDivisionExpression,
+                '%': FurModularDivisionExpression,
+            }[tokens[index].match](left=result, right=value)
+            index = try_index
+
+    return True, index, result
+
+def _addition_level_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    success, index, result = _multiplication_level_expression_parser(index, tokens)
+
+    if not success:
+        return failure
+
+    while success and index < len(tokens) and tokens[index].type == 'addition_level_operator':
+        success = False
+
+        if index + 1 < len(tokens):
+            success, try_index, value = _multiplication_level_expression_parser(index + 1, tokens)
+
+        if success:
+            result = {
+                '+': FurAdditionExpression,
+                '-': FurSubtractionExpression,
+            }[tokens[index].match](left=result, right=value)
+            index = try_index
+
+    return True, index, result
 
 FunctionCall = collections.namedtuple(
     'FunctionCall',
@@ -93,7 +184,7 @@ def _function_call_parser(index, tokens):
         return failure
     index += 1
 
-    success, index, argument = _argument_parser(index, tokens)
+    success, index, argument = _addition_level_expression_parser(index, tokens)
 
     if not success:
         return failure
@@ -101,7 +192,7 @@ def _function_call_parser(index, tokens):
     if tokens[index].type != 'close_parenthese':
         return failure
     index += 1
-    
+
     return True, index, FunctionCall(name=name, arguments=(argument,))
 
 def _program_formatter(statement_list):
@@ -129,14 +220,14 @@ if __name__ == '__main__':
 
     import tokenization
 
-    class StringLiteralParserTests(unittest.TestCase):
+    class FurStringLiteralExpressionParserTests(unittest.TestCase):
         def test_parses_single_quoted_string_literal(self):
             self.assertEqual(
-                _string_literal_parser(0, tokenization.tokenize("'Hello, world'")),
+                _string_literal_expression_parser(0, tokenization.tokenize("'Hello, world'")),
                 (
                     True,
                     1,
-                    StringLiteral(value='Hello, world'),
+                    FurStringLiteralExpression(value='Hello, world'),
                 ),
             )
 
@@ -149,7 +240,7 @@ if __name__ == '__main__':
                     4,
                     FunctionCall(
                         name='print',
-                        arguments=(StringLiteral(value='Hello, world'),),
+                        arguments=(FurStringLiteralExpression(value='Hello, world'),),
                     ),
                 ),
             )

@@ -24,10 +24,27 @@ def generate_string_literal(c_string_literal):
     )
 
 def generate_argument(c_argument):
-    return {
+    LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CStringLiteral: generate_string_literal,
-    }[type(c_argument)](c_argument)
+    }
+
+    if type(c_argument) in LITERAL_TYPE_MAPPING:
+        return LITERAL_TYPE_MAPPING[type(c_argument)](c_argument)
+
+    INFIX_TYPE_MAPPING = {
+        transformation.CAdditionExpression: 'add',
+        transformation.CSubtractionExpression: 'subtract',
+        transformation.CMultiplicationExpression: 'multiply',
+        transformation.CIntegerDivisionExpression: 'integerDivide',
+        transformation.CModularDivisionExpression: 'modularDivide',
+    }
+
+    return 'builtin${}({}, {})'.format(
+        INFIX_TYPE_MAPPING[type(c_argument)],
+        generate_argument(c_argument.left),
+        generate_argument(c_argument.right),
+    )
 
 def generate_statement(c_function_call_statement):
     return '{}({});'.format(
