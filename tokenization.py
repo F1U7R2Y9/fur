@@ -29,6 +29,7 @@ def _make_token_matcher(definition):
 _TOKEN_MATCHERS = [
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
+    ('integer_literal',                 r'-?\s*\d+'),
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
 ]

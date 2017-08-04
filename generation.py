@@ -1,12 +1,17 @@
 import jinja2
 
+import transformation
+
 ENV = jinja2.Environment(
     autoescape=jinja2.select_autoescape([]),
     loader=jinja2.FileSystemLoader('templates'),
     trim_blocks=True,
 )
 
-def generate_argument(c_string_literal):
+def generate_integer_literal(c_integer_literal):
+    return 'integerLiteral({})'.format(c_integer_literal.value)
+
+def generate_string_literal(c_string_literal):
     def c_escape(ch):
         return {
             '\n': r'\n',
@@ -17,6 +22,12 @@ def generate_argument(c_string_literal):
     return 'stringLiteral(runtime, "{}")'.format(
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
+
+def generate_argument(c_argument):
+    return {
+        transformation.CIntegerLiteral: generate_integer_literal,
+        transformation.CStringLiteral: generate_string_literal,
+    }[type(c_argument)](c_argument)
 
 def generate_statement(c_function_call_statement):
     return '{}({});'.format(

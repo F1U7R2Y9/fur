@@ -1,11 +1,28 @@
 import collections
 
+IntegerLiteral = collections.namedtuple(
+    'IntegerLiteral',
+    [
+        'value',
+    ],
+)
+
 StringLiteral = collections.namedtuple(
     'StringLiteral',
     [
         'value',
     ],
 )
+
+def _integer_literal_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].type != 'integer_literal':
+        return failure
+    value = int(tokens[index].match)
+    index += 1
+
+    return True, index, IntegerLiteral(value=value)
 
 def _string_literal_parser(index, tokens):
     failure = (False, index, None)
@@ -16,6 +33,17 @@ def _string_literal_parser(index, tokens):
     index += 1
 
     return True, index, StringLiteral(value=value)
+
+def _argument_parser(index, tokens):
+    failure = (False, index, None)
+
+    for parser in [_integer_literal_parser, _string_literal_parser]:
+        success, index, value = parser(index, tokens)
+
+        if success:
+            return (success, index, value)
+
+    return failure
 
 
 FunctionCall = collections.namedtuple(
@@ -38,7 +66,7 @@ def _function_call_parser(index, tokens):
         return failure
     index += 1
 
-    success, index, argument = _string_literal_parser(index, tokens)
+    success, index, argument = _argument_parser(index, tokens)
 
     if not success:
         return failure

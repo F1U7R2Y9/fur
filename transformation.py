@@ -2,6 +2,13 @@ import collections
 
 import parsing
 
+CIntegerLiteral = collections.namedtuple(
+    'CIntegerLiteral',
+    [
+        'value',
+    ],
+)
+
 CStringLiteral = collections.namedtuple(
     'CStringLiteral',
     [
@@ -31,10 +38,10 @@ BUILTINS = {
 }
 
 def transform_argument(builtin_dependencies, argument):
-    if isinstance(argument, parsing.StringLiteral):
-        return CStringLiteral(value=argument.value)
-
-    raise Exception()
+    return {
+        parsing.IntegerLiteral: CIntegerLiteral,
+        parsing.StringLiteral: CStringLiteral,
+    }[type(argument)](value=argument.value)
 
 def transform_function_call_statement(builtin_dependencies, function_call):
     if function_call.name in BUILTINS.keys():

@@ -1,3 +1,6 @@
+#include <assert.h>
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,6 +10,12 @@
 
 struct String;
 typedef struct String String;
+enum Type;
+typedef enum Type Type;
+union Instance;
+typedef union Instance Instance;
+struct Object;
+typedef struct Object Object;
 struct Runtime;
 typedef struct Runtime Runtime;
 
@@ -14,6 +23,24 @@ struct String
 {
   size_t length;
   char* characters;
+};
+
+enum Type
+{
+  INTEGER,
+  STRING
+};
+
+union Instance
+{
+  int32_t integer;
+  String* string;
+};
+
+struct Object
+{
+  Type type;
+  Instance instance;
 };
 
 struct Runtime
@@ -64,21 +91,45 @@ void Runtime_addPermanentString(Runtime* self, String* string)
   self->permanentStringsLength++;
 }
 
-String* stringLiteral(Runtime* runtime, const char* literal)
+Object integerLiteral(int32_t literal)
 {
-  String* result = malloc(sizeof(String));
-  result->length = strlen(literal);
-  result->characters = malloc(result->length);
-  memcpy(result->characters, literal, result->length);
-  Runtime_addPermanentString(runtime, result);
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = literal;
+  return result;
+}
+
+Object stringLiteral(Runtime* runtime, const char* literal)
+{
+  String* resultString = malloc(sizeof(String));
+  resultString->length = strlen(literal);
+  resultString->characters = malloc(resultString->length);
+  memcpy(resultString->characters, literal, resultString->length);
+  Runtime_addPermanentString(runtime, resultString);
+
+  Object result;
+  result.type = STRING;
+  result.instance.string = resultString;
   return result;
 }
 
 {% if 'print' in builtins %}
-void builtin$print(String* output)
+void builtin$print(Object output)
 {
-  // Using fwrite instead of printf to handle size_t length
-  fwrite(output->characters, 1, output->length, stdout);
+  switch(output.type)
+  {
+    case INTEGER:
+      printf("%" PRId32, output.instance.integer);
+      break;
+
+    case STRING:
+      // Using fwrite instead of printf to handle size_t length
+      fwrite(output.instance.string->characters, 1, output.instance.string->length, stdout);
+      break;
+
+    default:
+      assert(false);
+  }
 }
 {% endif %}
 
