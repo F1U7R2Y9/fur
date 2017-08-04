@@ -55,10 +55,12 @@ def transform_function_call_statement(builtin_dependencies, function_call):
     raise Exception()
 
 
-def transform(function_call):
+def transform(program):
     builtins = set()
 
-    statement = transform_function_call_statement(builtins, function_call)
+    c_statements = [
+        transform_function_call_statement(builtins, statement) for statement in program.statement_list
+    ]
 
     standard_libraries = set()
     for builtin in builtins:
@@ -67,7 +69,7 @@ def transform(function_call):
 
     return CProgram(
         builtins=builtins,
-        statements=[statement],
+        statements=c_statements,
         standard_libraries=standard_libraries,
     )
 

@@ -36,7 +36,7 @@ _TOKEN_MATCHERS = [
 
 _TOKEN_MATCHERS = list(map(_make_token_matcher, _TOKEN_MATCHERS))
 
-@util.force_generator
+@util.force_generator(tuple)
 def tokenize(source):
     index = 0
 

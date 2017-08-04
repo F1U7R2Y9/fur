@@ -1,5 +1,35 @@
 import collections
 
+def _or_parser(*parsers):
+    def result_parser(index, tokens):
+        failure = (False, index, None)
+
+        for parser in parsers:
+            success, index, value = parser(index, tokens)
+
+            if success:
+                return (success, index, value)
+
+        return failure
+
+    return result_parser
+
+def _zero_or_more_parser(formatter, parser):
+    def result_parser(index, tokens):
+        values = []
+
+        while index < len(tokens):
+            success, index, value = parser(index, tokens)
+
+            if success:
+                values.append(value)
+            else:
+                break
+
+        return (True, index, formatter(values))
+
+    return result_parser
+
 IntegerLiteral = collections.namedtuple(
     'IntegerLiteral',
     [
@@ -34,23 +64,20 @@ def _string_literal_parser(index, tokens):
 
     return True, index, StringLiteral(value=value)
 
-def _argument_parser(index, tokens):
-    failure = (False, index, None)
-
-    for parser in [_integer_literal_parser, _string_literal_parser]:
-        success, index, value = parser(index, tokens)
-
-        if success:
-            return (success, index, value)
-
-    return failure
-
+_argument_parser = _or_parser(_integer_literal_parser, _string_literal_parser)
 
 FunctionCall = collections.namedtuple(
     'FunctionCall',
     [
         'name',
         'arguments',
+    ],
+)
+
+FurProgram = collections.namedtuple(
+    'FurProgram',
+    [
+        'statement_list',
     ],
 )
 
@@ -77,8 +104,16 @@ def _function_call_parser(index, tokens):
     
     return True, index, FunctionCall(name=name, arguments=(argument,))
 
+def _program_formatter(statement_list):
+    return FurProgram(statement_list=statement_list)
+
+_program_parser = _zero_or_more_parser(_program_formatter, _function_call_parser)
+
 def _parse(parser, tokens):
     success, index, result = parser(0, tokens)
+
+    if index < len(tokens):
+        raise Exception('Unable to parse token {}'.format(tokens[index]))
 
     if success:
         return result
@@ -87,7 +122,7 @@ def _parse(parser, tokens):
 
 
 def parse(tokens):
-    return _parse(_function_call_parser, tokens)
+    return _parse(_program_parser, tokens)
 
 if __name__ == '__main__':
     import unittest
