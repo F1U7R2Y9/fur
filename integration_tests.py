@@ -3,7 +3,8 @@ import os.path
 import subprocess
 import unittest
 
-EXAMPLES_PATH = os.path.join(os.path.dirname(__file__), 'examples')
+# Go to the directory of the current file so we know where we are in the filesystem
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 class OutputTests(unittest.TestCase):
     pass
@@ -13,7 +14,7 @@ def add_example_output_test(filename):
         compile_fur_to_c_result = subprocess.call([
             'python',
             'main.py',
-            os.path.join(EXAMPLES_PATH, filename),
+            os.path.join('examples', filename),
         ])
 
         if compile_fur_to_c_result != 0:
@@ -21,24 +22,34 @@ def add_example_output_test(filename):
 
         compile_c_to_executable_result = subprocess.call([
             'gcc',
-            os.path.join(EXAMPLES_PATH, filename + '.c'),
+            os.path.join('examples', filename + '.c'),
         ])
 
         if compile_c_to_executable_result != 0:
             raise Exception('Example output "{}" did not compile'.format(filename + '.c'))
 
-        actual_output = subprocess.check_output(['./a.out'])
+        try:
+            actual_output = subprocess.check_output(['./a.out'])
 
-        with open(os.path.join(EXAMPLES_PATH, filename + '.output.txt'), 'rb') as f:
-            expected_output = f.read()
+            with open(os.path.join('examples', filename + '.output.txt'), 'rb') as f:
+                expected_output = f.read()
 
-        self.assertEqual(expected_output, actual_output)
+            self.assertEqual(expected_output, actual_output)
+
+            # We don't clean up the C file in the finally clause because it can be useful to have in case of errors
+            os.remove(os.path.join('examples', filename + '.c'))
+
+        finally:
+            try:
+                os.remove('a.out')
+            except OSError:
+                pass
 
     setattr(OutputTests, 'test_' + filename, test)
 
 filenames = (
     entry.name
-    for entry in os.scandir(EXAMPLES_PATH)
+    for entry in os.scandir('examples')
     if entry.is_file()
     if entry.name.endswith('.fur')
 )
