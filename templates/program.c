@@ -5,7 +5,7 @@
 {% if 'print' in builtins %}
 void builtin$print(const char* output)
 {
-  printf("%s\n", output);
+  printf("%s", output);
 }
 {% endif %}
 

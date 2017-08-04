@@ -16,7 +16,7 @@ transformed = transformation.transform(parsed)
 generated = generation.generate(transformed)
 
 assert source_path.endswith('.fur')
-destination_path = source_path[:-4] + '.c'
+destination_path = source_path + '.c'
 
 with open(destination_path, 'w') as f:
     f.write(generated)
