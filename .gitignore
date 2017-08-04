@@ -1,0 +1,4 @@
+.env/
+a.out
+examples/*.c
+__pycache__/
