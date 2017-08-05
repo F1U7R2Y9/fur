@@ -16,6 +16,13 @@ CStringLiteral = collections.namedtuple(
     ],
 )
 
+CSymbolExpression = collections.namedtuple(
+    'CSymbolExpression',
+    [
+        'value',
+    ],
+)
+
 CNegationExpression = collections.namedtuple(
     'CNegationExpression',
     [
@@ -71,6 +78,14 @@ CFunctionCallExpression = collections.namedtuple(
     ],
 )
 
+CAssignmentStatement = collections.namedtuple(
+    'CAssignmentStatement',
+    [
+        'target',
+        'expression',
+    ],
+)
+
 CProgram = collections.namedtuple(
     'CProgram',
     [
@@ -95,6 +110,7 @@ def transform_expression(builtin_dependencies, expression):
     LITERAL_TYPE_MAPPING = {
         parsing.FurIntegerLiteralExpression: CIntegerLiteral,
         parsing.FurStringLiteralExpression: CStringLiteral,
+        parsing.FurSymbolExpression: CSymbolExpression,
     }
 
     if type(expression) in LITERAL_TYPE_MAPPING:
@@ -113,6 +129,13 @@ def transform_expression(builtin_dependencies, expression):
         right=transform_expression(builtin_dependencies, expression.right),
     )
 
+def transform_assignment_statement(builtin_dependencies, assignment_statement):
+    # TODO Check that target is not a builtin
+    return CAssignmentStatement(
+        target=assignment_statement.target,
+        expression=transform_expression(builtin_dependencies, assignment_statement.expression),
+    )
+
 def transform_negation_expression(builtin_dependencies, negation_expression):
     return CNegationExpression(value=transform_expression(builtin_dependencies, negation_expression.value))
 
@@ -127,11 +150,17 @@ def transform_function_call_expression(builtin_dependencies, function_call):
 
     raise Exception()
 
+def transform_statement(builtin_dependencies, statement):
+    return {
+        parsing.FurAssignmentStatement: transform_assignment_statement,
+        parsing.FurFunctionCallExpression: transform_function_call_expression,
+    }[type(statement)](builtin_dependencies, statement)
+
 def transform(program):
     builtins = set()
 
     c_statements = [
-        transform_function_call_expression(builtins, statement) for statement in program.statement_list
+        transform_statement(builtins, statement) for statement in program.statement_list
     ]
 
     standard_libraries = set()

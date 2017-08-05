@@ -1,5 +1,6 @@
 import jinja2
 
+import parsing
 import transformation
 
 ENV = jinja2.Environment(
@@ -23,6 +24,9 @@ def generate_string_literal(c_string_literal):
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
 
+def generate_symbol_expression(c_symbol_expression):
+    return 'Environment_get(environment, Runtime_symbol(runtime, "{}"))'.format(c_symbol_expression.value)
+
 def generate_expression(c_argument):
     if isinstance(c_argument, transformation.CNegationExpression):
         return generate_negation_expression(c_argument)
@@ -33,6 +37,7 @@ def generate_expression(c_argument):
     LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CStringLiteral: generate_string_literal,
+        transformation.CSymbolExpression: generate_symbol_expression,
     }
 
     if type(c_argument) in LITERAL_TYPE_MAPPING:
@@ -63,12 +68,26 @@ def generate_function_call(c_function_call):
         ', '.join(generate_expression(argument) for argument in c_function_call.arguments),
     )
 
-def generate_statement(c_function_call_statement):
-    return '{};'.format(generate_function_call(c_function_call_statement))
+def generate_expression_statement(c_function_call_statement):
+    # TODO Do we need to garbage collect the results of arbitrary statements?
+    return '{};'.format(generate_expression(c_function_call_statement))
+
+def generate_assignment_statement(c_assignment_statement):
+    return 'Environment_set(environment, Runtime_symbol(runtime, "{}"), {});'.format(
+        c_assignment_statement.target,
+        generate_expression(c_assignment_statement.expression),
+    )
+
+def generate_statement(statement):
+    if isinstance(statement, transformation.CAssignmentStatement):
+        return generate_assignment_statement(statement)
+
+    return generate_expression_statement(statement)
 
 def generate(c_program):
     template = ENV.get_template('program.c')
     return template.render(
+        MAX_SYMBOL_LENGTH=parsing.MAX_SYMBOL_LENGTH,
         builtins=list(sorted(c_program.builtins)),
         statements=[generate_statement(statement) for statement in c_program.statements],
         standard_libraries=list(sorted(c_program.standard_libraries)),

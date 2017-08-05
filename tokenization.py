@@ -36,6 +36,7 @@ _TOKEN_MATCHERS = [
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
     ('comma',                           r','),
+    ('assignment_operator',             r'='),
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
@@ -185,6 +186,16 @@ if __name__ == '__main__':
                 ),),
             )
 
+        def test_tokenizes_assignment_operator(self):
+            self.assertEqual(
+                tokenize('='),
+                (Token(
+                    type='assignment_operator',
+                    match='=',
+                    index=0,
+                    line=1,
+                ),),
+            )
 
         def test_handles_trailing_newline(self):
             self.assertEqual(

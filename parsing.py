@@ -1,5 +1,8 @@
 import collections
 
+# TODO Check max symbol length in assignments, function calls, and symbol expressions
+MAX_SYMBOL_LENGTH = 16
+
 def _or_parser(*parsers):
     def result_parser(index, tokens):
         failure = (False, index, None)
@@ -39,6 +42,13 @@ FurIntegerLiteralExpression = collections.namedtuple(
 
 FurStringLiteralExpression = collections.namedtuple(
     'FurStringLiteralExpression',
+    [
+        'value',
+    ],
+)
+
+FurSymbolExpression = collections.namedtuple(
+    'FurSymbolExpression',
     [
         'value',
     ],
@@ -102,14 +112,16 @@ def _integer_literal_expression_parser(index, tokens):
     return True, index, FurIntegerLiteralExpression(value=value)
 
 def _string_literal_expression_parser(index, tokens):
-    failure = (False, index, None)
+    if tokens[index].type == 'single_quoted_string_literal':
+        return (True, index + 1, FurStringLiteralExpression(value=tokens[index].match[1:-1]))
 
-    if tokens[index].type != 'single_quoted_string_literal':
-        return failure
-    value = tokens[index].match[1:-1]
-    index += 1
+    return (False, index, None)
 
-    return True, index, FurStringLiteralExpression(value=value)
+def _symbol_expression_parser(index, tokens):
+    if tokens[index].type == 'symbol':
+        return (True, index + 1, FurSymbolExpression(value=tokens[index].match))
+
+    return (False, index, None)
 
 def _negation_expression_parser(index, tokens):
     failure = (False, index, None)
@@ -130,6 +142,7 @@ def _literal_level_expression_parser(index, tokens):
         _function_call_expression_parser,
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
+        _symbol_expression_parser,
     )(index, tokens)
 
 def _multiplication_level_expression_parser(index, tokens):
@@ -212,6 +225,14 @@ FurFunctionCallExpression = collections.namedtuple(
     ],
 )
 
+FurAssignmentStatement = collections.namedtuple(
+    'FurAssignmentStatement',
+    [
+        'target',
+        'expression',
+    ],
+)
+
 FurProgram = collections.namedtuple(
     'FurProgram',
     [
@@ -220,6 +241,7 @@ FurProgram = collections.namedtuple(
 )
 
 def _function_call_expression_parser(index, tokens):
+    # TODO Use a FurSymbolExpression for the name
     failure = (False, index, None)
 
     if tokens[index].type != 'symbol':
@@ -245,10 +267,42 @@ def _function_call_expression_parser(index, tokens):
 
     return True, index, FurFunctionCallExpression(name=name, arguments=arguments)
 
+_expression_parser = _multiplication_level_expression_parser
+
+def _assignment_statement_parser(index, tokens):
+    # TODO Use a FurSymbolExpression for the target
+    failure = (False, index, None)
+
+    if tokens[index].type != 'symbol':
+        return failure
+    target = tokens[index].match
+    index += 1
+
+    if tokens[index].type != 'assignment_operator':
+        return failure
+    assignment_operator_index = index
+
+    success, index, expression = _expression_parser(index + 1, tokens)
+
+    if not success:
+        raise Exception(
+            'Expected expression after assignment operator on line {}'.format(
+                tokens[assignment_operator_index].line
+            )
+        )
+
+    return True, index, FurAssignmentStatement(target=target, expression=expression)
+
+def _statement_parser(index, tokens):
+    return _or_parser(
+        _assignment_statement_parser,
+        _expression_parser,
+    )(index, tokens)
+
 def _program_formatter(statement_list):
     return FurProgram(statement_list=statement_list)
 
-_program_parser = _zero_or_more_parser(_program_formatter, _function_call_expression_parser)
+_program_parser = _zero_or_more_parser(_program_formatter, _statement_parser)
 
 def _parse(parser, tokens):
     success, index, result = parser(0, tokens)

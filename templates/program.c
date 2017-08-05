@@ -25,6 +25,15 @@ struct String
   char* characters;
 };
 
+#define MAX_SYMBOL_LENGTH {{ MAX_SYMBOL_LENGTH }}
+struct Symbol;
+typedef struct Symbol Symbol;
+struct Symbol
+{
+  size_t length;
+  char name[MAX_SYMBOL_LENGTH];
+};
+
 enum Type
 {
   INTEGER,
@@ -43,11 +52,78 @@ struct Object
   Instance instance;
 };
 
+struct EnvironmentNode;
+typedef struct EnvironmentNode EnvironmentNode;
+struct EnvironmentNode
+{
+  Symbol* key;
+  Object value;
+  EnvironmentNode* next;
+};
+
+struct Environment;
+typedef struct Environment Environment;
+struct Environment
+{
+  EnvironmentNode* root;
+};
+
+Environment* Environment_construct()
+{
+  // TODO Handle malloc returning NULL
+  Environment* result = malloc(sizeof(Environment));
+  result->root = NULL;
+  return result;
+}
+
+void Environment_destruct(Environment* self)
+{
+  EnvironmentNode* next;
+  for(EnvironmentNode* node = self->root; node != NULL; node = next)
+  {
+    // We don't need to destruct the keys, because those will be destructed at the end when the Runtime is destructed
+    // We don't need to destruct the permanent strings, because those will be destructed at the end when the Runtime is destructed
+    // The above two comments represent all heap-allocated objects currently, so we don't need to destruct Objects (yet)
+    next = node->next;
+    free(node);
+  }
+}
+
+// This need not be thread safe because environments exist on one thread only
+void Environment_set(Environment* self, Symbol* key, Object value)
+{
+  EnvironmentNode* node = malloc(sizeof(EnvironmentNode));
+  node->key = key;
+  node->value = value;
+  node->next = self->root;
+  self->root = node;
+}
+
+Object Environment_get(Environment* self, Symbol* symbol)
+{
+  for(EnvironmentNode* node = self->root; node != NULL; node = node->next)
+  {
+    // We can compare pointers because pointers are unique within Runtime->symbols
+    if(node->key == symbol)
+    {
+      return node->value;
+    }
+  }
+
+  // TODO Handle symbol errors
+  assert(false);
+}
+
+
+// TODO Allocate all symbols and strings as static constants so we can remove the level of indirection
 struct Runtime
 {
   size_t permanentStringsLength;
   size_t permanentStringsAllocated;
   String** permanentStrings;
+  size_t symbolsLength;
+  size_t symbolsAllocated;
+  Symbol** symbols;
 };
 
 Runtime* Runtime_construct()
@@ -56,12 +132,26 @@ Runtime* Runtime_construct()
   result->permanentStringsLength = 0;
   result->permanentStringsAllocated = 0;
   result->permanentStrings = NULL;
+  result->symbolsLength = 0;
+  result->symbolsAllocated =0;
+  result->symbols = NULL;
   return result;
 }
 
 void Runtime_destruct(Runtime* self)
 {
+  for(size_t i = 0; i < self->permanentStringsLength; i++)
+  {
+    free(self->permanentStrings[i]);
+  }
+
+  for(size_t i = 0; i < self->symbolsLength; i++)
+  {
+    free(self->symbols[i]);
+  }
+
   free(self->permanentStrings);
+  free(self->symbols);
   free(self);
 }
 
@@ -89,6 +179,49 @@ void Runtime_addPermanentString(Runtime* self, String* string)
 
   self->permanentStrings[self->permanentStringsLength] = string;
   self->permanentStringsLength++;
+}
+
+// TODO Optimize this by sorting the symbols
+// TODO Make this function thread safe
+Symbol* Runtime_symbol(Runtime* self, const char* name)
+{
+  assert(strlen(name) <= MAX_SYMBOL_LENGTH);
+
+  for(size_t i = 0; i < self->symbolsLength; i++)
+  {
+    if(strcmp(self->symbols[i]->name, name) == 0)
+    {
+      return self->symbols[i];
+    }
+  }
+
+  if(self->symbolsLength == self->symbolsAllocated)
+  {
+    if(self->symbolsAllocated == 0)
+    {
+      self->symbolsAllocated = 8;
+    }
+    else
+    {
+      self->symbolsAllocated = self->symbolsAllocated * 2;
+    }
+
+    self->symbols = realloc(
+      self->symbols,
+      sizeof(Symbol*) * self->symbolsAllocated
+    );
+
+    // TODO Handle realloc returning NULL
+  }
+
+  Symbol* result = malloc(sizeof(Symbol));
+  result->length = strlen(name);
+  strcpy(result->name, name);
+
+  self->symbols[self->symbolsLength] = result;
+  self->symbolsLength++;
+
+  return result;
 }
 
 Object integerLiteral(int32_t literal)
@@ -215,11 +348,13 @@ void builtin$print(Object output)
 int main(int argc, char** argv)
 {
   Runtime* runtime = Runtime_construct();
+  Environment* environment = Environment_construct();
 
   {% for statement in statements %}
   {{ statement }}
   {% endfor %}
 
+  Environment_destruct(environment);
   Runtime_destruct(runtime);
 
   return 0;
