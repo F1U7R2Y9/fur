@@ -16,6 +16,13 @@ CStringLiteral = collections.namedtuple(
     ],
 )
 
+CNegationExpression = collections.namedtuple(
+    'CNegationExpression',
+    [
+        'value',
+    ],
+)
+
 CAdditionExpression = collections.namedtuple(
     'CAdditionExpression',
     [
@@ -79,6 +86,9 @@ BUILTINS = {
 }
 
 def transform_expression(builtin_dependencies, expression):
+    if isinstance(expression, parsing.FurNegationExpression):
+        return transform_negation_expression(builtin_dependencies, expression)
+
     if isinstance(expression, parsing.FurFunctionCallExpression):
         return transform_function_call_expression(builtin_dependencies, expression)
 
@@ -102,6 +112,9 @@ def transform_expression(builtin_dependencies, expression):
         left=transform_expression(builtin_dependencies, expression.left),
         right=transform_expression(builtin_dependencies, expression.right),
     )
+
+def transform_negation_expression(builtin_dependencies, negation_expression):
+    return CNegationExpression(value=transform_expression(builtin_dependencies, negation_expression.value))
 
 def transform_function_call_expression(builtin_dependencies, function_call):
     if function_call.name in BUILTINS.keys():

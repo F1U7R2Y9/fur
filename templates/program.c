@@ -114,6 +114,16 @@ Object stringLiteral(Runtime* runtime, const char* literal)
 }
 
 // TODO Make this conditionally added
+Object builtin$negate(Object input)
+{
+  assert(input.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = -input.instance.integer;
+  return result;
+}
+
 Object builtin$add(Object left, Object right)
 {
   assert(left.type == INTEGER);

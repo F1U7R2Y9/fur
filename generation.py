@@ -23,7 +23,10 @@ def generate_string_literal(c_string_literal):
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
 
-def generate_argument(c_argument):
+def generate_expression(c_argument):
+    if isinstance(c_argument, transformation.CNegationExpression):
+        return generate_negation_expression(c_argument)
+
     if isinstance(c_argument, transformation.CFunctionCallExpression):
         return generate_function_call(c_argument)
 
@@ -45,14 +48,19 @@ def generate_argument(c_argument):
 
     return 'builtin${}({}, {})'.format(
         INFIX_TYPE_MAPPING[type(c_argument)],
-        generate_argument(c_argument.left),
-        generate_argument(c_argument.right),
+        generate_expression(c_argument.left),
+        generate_expression(c_argument.right),
+    )
+
+def generate_negation_expression(c_negation_expression):
+    return 'builtin$negate({})'.format(
+        generate_expression(c_negation_expression.value)
     )
 
 def generate_function_call(c_function_call):
     return '{}({})'.format(
         c_function_call.name,
-        ', '.join(generate_argument(argument) for argument in c_function_call.arguments),
+        ', '.join(generate_expression(argument) for argument in c_function_call.arguments),
     )
 
 def generate_statement(c_function_call_statement):

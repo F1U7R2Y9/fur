@@ -44,6 +44,13 @@ FurStringLiteralExpression = collections.namedtuple(
     ],
 )
 
+FurNegationExpression = collections.namedtuple(
+    'FurNegationExpression',
+    [
+        'value',
+    ],
+)
+
 FurAdditionExpression = collections.namedtuple(
     'FurAdditionExpression',
     [
@@ -104,8 +111,22 @@ def _string_literal_expression_parser(index, tokens):
 
     return True, index, FurStringLiteralExpression(value=value)
 
+def _negation_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].match != '-':
+        return failure
+
+    success, index, value = _literal_level_expression_parser(index + 1, tokens)
+
+    if not success:
+        return failure
+
+    return (True, index, FurNegationExpression(value=value))
+
 def _literal_level_expression_parser(index, tokens):
     return _or_parser(
+        _negation_expression_parser,
         _function_call_expression_parser,
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
