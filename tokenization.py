@@ -9,6 +9,7 @@ Token = collections.namedtuple(
         'type',
         'match',
         'index',
+        'line',
     ],
 )
 
@@ -16,7 +17,7 @@ def _make_token_matcher(definition):
     name, regex = definition
     regex_matcher = re.compile(regex)
 
-    def token_matcher(index, source):
+    def token_matcher(index, source, line):
         match = regex_matcher.match(source[index:])
 
         if match is None:
@@ -25,7 +26,7 @@ def _make_token_matcher(definition):
         return (
             True,
             index + len(match.group()),
-            Token(type=name, match=match.group(), index=index),
+            Token(type=name, match=match.group(), index=index, line=line),
         )
 
     return token_matcher
@@ -34,6 +35,7 @@ def _make_token_matcher(definition):
 _TOKEN_MATCHERS = [
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
+    ('comma',                           r','),
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
@@ -46,6 +48,7 @@ _TOKEN_MATCHERS = list(map(_make_token_matcher, _TOKEN_MATCHERS))
 @util.force_generator(tuple)
 def tokenize(source):
     index = 0
+    line = 1
 
     while index < len(source):
         if source[index] == ' ':
@@ -55,7 +58,7 @@ def tokenize(source):
         success = False
 
         for matcher in _TOKEN_MATCHERS:
-            success, index, token = matcher(index, source)
+            success, index, token = matcher(index, source, line)
 
             if success:
                 yield token
@@ -65,6 +68,7 @@ def tokenize(source):
             raise Exception('Unexpected character "{}"'.format(source[index]))
 
         while index < len(source) and source[index] in set(['\n']):
+            line += 1
             index += 1
 
 if __name__ == '__main__':
@@ -78,6 +82,7 @@ if __name__ == '__main__':
                     type='open_parenthese',
                     match='(',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -88,6 +93,7 @@ if __name__ == '__main__':
                     type='close_parenthese',
                     match=')',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -98,6 +104,7 @@ if __name__ == '__main__':
                     type='symbol',
                     match='print',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -108,6 +115,7 @@ if __name__ == '__main__':
                     type='single_quoted_string_literal',
                     match="'Hello, world'",
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -118,6 +126,7 @@ if __name__ == '__main__':
                     type='addition_level_operator',
                     match='+',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -128,6 +137,7 @@ if __name__ == '__main__':
                     type='addition_level_operator',
                     match='-',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -138,6 +148,7 @@ if __name__ == '__main__':
                     type='multiplication_level_operator',
                     match='*',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -148,6 +159,7 @@ if __name__ == '__main__':
                     type='multiplication_level_operator',
                     match='//',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -158,8 +170,21 @@ if __name__ == '__main__':
                     type='multiplication_level_operator',
                     match='%',
                     index=0,
+                    line=1,
                 ),),
             )
+
+        def test_tokenizes_comma(self):
+            self.assertEqual(
+                tokenize(','),
+                (Token(
+                    type='comma',
+                    match=',',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
 
         def test_handles_trailing_newline(self):
             self.assertEqual(
@@ -168,6 +193,7 @@ if __name__ == '__main__':
                     type='symbol',
                     match='print',
                     index=0,
+                    line=1,
                 ),),
             )
 
@@ -178,7 +204,28 @@ if __name__ == '__main__':
                     type='symbol',
                     match='print',
                     index=1,
+                    line=1,
                 ),),
             )
+
+        def test_tokenizes_with_proper_line_numbers(self):
+            self.assertEqual(
+                tokenize('print\n('),
+                (
+                    Token(
+                        type='symbol',
+                        match='print',
+                        index=0,
+                        line=1,
+                    ),
+                    Token(
+                        type='open_parenthese',
+                        match='(',
+                        index=6,
+                        line=2,
+                    ),
+                ),
+            )
+
 
     unittest.main()

@@ -106,6 +106,7 @@ def _string_literal_expression_parser(index, tokens):
 
 def _literal_level_expression_parser(index, tokens):
     return _or_parser(
+        _function_call_expression_parser,
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
     )(index, tokens)
@@ -157,8 +158,33 @@ def _addition_level_expression_parser(index, tokens):
 
     return True, index, result
 
-FunctionCall = collections.namedtuple(
-    'FunctionCall',
+def _comma_separated_list_parser(index, tokens):
+    failure = (False, index, None)
+
+    expressions = []
+
+    success, index, expression = _addition_level_expression_parser(index, tokens)
+
+    if success:
+        expressions.append(expression)
+    else:
+        return failure
+
+    while success and index < len(tokens) and tokens[index].type == 'comma':
+        success = False
+
+        if index + 1 < len(tokens):
+            success, try_index, expression = _addition_level_expression_parser(index + 1, tokens)
+
+        if success:
+            expressions.append(expression)
+            index = try_index
+
+    return True, index, tuple(expressions)
+
+
+FurFunctionCallExpression = collections.namedtuple(
+    'FurFunctionCallExpression',
     [
         'name',
         'arguments',
@@ -172,7 +198,7 @@ FurProgram = collections.namedtuple(
     ],
 )
 
-def _function_call_parser(index, tokens):
+def _function_call_expression_parser(index, tokens):
     failure = (False, index, None)
 
     if tokens[index].type != 'symbol':
@@ -184,21 +210,24 @@ def _function_call_parser(index, tokens):
         return failure
     index += 1
 
-    success, index, argument = _addition_level_expression_parser(index, tokens)
+    success, index, arguments = _comma_separated_list_parser(index, tokens)
 
     if not success:
         return failure
 
     if tokens[index].type != 'close_parenthese':
-        return failure
+        raise Exception('Expected ")", found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].line,
+        ))
     index += 1
 
-    return True, index, FunctionCall(name=name, arguments=(argument,))
+    return True, index, FurFunctionCallExpression(name=name, arguments=arguments)
 
 def _program_formatter(statement_list):
     return FurProgram(statement_list=statement_list)
 
-_program_parser = _zero_or_more_parser(_program_formatter, _function_call_parser)
+_program_parser = _zero_or_more_parser(_program_formatter, _function_call_expression_parser)
 
 def _parse(parser, tokens):
     success, index, result = parser(0, tokens)
@@ -210,7 +239,6 @@ def _parse(parser, tokens):
         return result
 
     raise Exception('Unable to parse')
-
 
 def parse(tokens):
     return _parse(_program_parser, tokens)
@@ -231,14 +259,14 @@ if __name__ == '__main__':
                 ),
             )
 
-    class FunctionCallParserTests(unittest.TestCase):
+    class FurFunctionCallExpressionParserTests(unittest.TestCase):
         def test_parses_function_with_string_literal_argument(self):
             self.assertEqual(
-                _function_call_parser(0, tokenization.tokenize("print('Hello, world')")),
+                _function_call_expression_parser(0, tokenization.tokenize("print('Hello, world')")),
                 (
                     True,
                     4,
-                    FunctionCall(
+                    FurFunctionCallExpression(
                         name='print',
                         arguments=(FurStringLiteralExpression(value='Hello, world'),),
                     ),

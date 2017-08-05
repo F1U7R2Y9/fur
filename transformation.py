@@ -56,8 +56,8 @@ CModularDivisionExpression = collections.namedtuple(
     ],
 )
 
-CFunctionCallStatement = collections.namedtuple(
-    'CFunctionCallStatement',
+CFunctionCallExpression = collections.namedtuple(
+    'CFunctionCallExpression',
     [
         'name',
         'arguments',
@@ -74,10 +74,13 @@ CProgram = collections.namedtuple(
 )
 
 BUILTINS = {
-    'print': ['stdio.h.'],
+    'pow':      ['math.h'],
+    'print':    ['stdio.h'],
 }
 
 def transform_expression(builtin_dependencies, expression):
+    if isinstance(expression, parsing.FurFunctionCallExpression):
+        return transform_function_call_expression(builtin_dependencies, expression)
 
     LITERAL_TYPE_MAPPING = {
         parsing.FurIntegerLiteralExpression: CIntegerLiteral,
@@ -100,11 +103,11 @@ def transform_expression(builtin_dependencies, expression):
         right=transform_expression(builtin_dependencies, expression.right),
     )
 
-def transform_function_call_statement(builtin_dependencies, function_call):
+def transform_function_call_expression(builtin_dependencies, function_call):
     if function_call.name in BUILTINS.keys():
         builtin_dependencies.add(function_call.name)
 
-        return CFunctionCallStatement(
+        return CFunctionCallExpression(
             name='builtin$' + function_call.name,
             arguments=tuple(transform_expression(builtin_dependencies, arg) for arg in function_call.arguments),
         )
@@ -115,7 +118,7 @@ def transform(program):
     builtins = set()
 
     c_statements = [
-        transform_function_call_statement(builtins, statement) for statement in program.statement_list
+        transform_function_call_expression(builtins, statement) for statement in program.statement_list
     ]
 
     standard_libraries = set()

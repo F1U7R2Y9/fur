@@ -24,6 +24,9 @@ def generate_string_literal(c_string_literal):
     )
 
 def generate_argument(c_argument):
+    if isinstance(c_argument, transformation.CFunctionCallExpression):
+        return generate_function_call(c_argument)
+
     LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CStringLiteral: generate_string_literal,
@@ -46,18 +49,21 @@ def generate_argument(c_argument):
         generate_argument(c_argument.right),
     )
 
-def generate_statement(c_function_call_statement):
-    return '{}({});'.format(
-        c_function_call_statement.name,
-        ', '.join(generate_argument(argument) for argument in c_function_call_statement.arguments),
+def generate_function_call(c_function_call):
+    return '{}({})'.format(
+        c_function_call.name,
+        ', '.join(generate_argument(argument) for argument in c_function_call.arguments),
     )
+
+def generate_statement(c_function_call_statement):
+    return '{};'.format(generate_function_call(c_function_call_statement))
 
 def generate(c_program):
     template = ENV.get_template('program.c')
     return template.render(
         builtins=list(sorted(c_program.builtins)),
         statements=[generate_statement(statement) for statement in c_program.statements],
-        standard_libraries=set(['stdio.h']),
+        standard_libraries=list(sorted(c_program.standard_libraries)),
     )
 
 if __name__ == '__main__':

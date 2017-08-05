@@ -169,6 +169,19 @@ Object builtin$modularDivide(Object left, Object right)
   return result;
 }
 
+{% if 'pow' in builtins %}
+Object builtin$pow(Object base, Object exponent)
+{
+  assert(base.type == INTEGER);
+  assert(exponent.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.instance.integer = pow(base.instance.integer, exponent.instance.integer);
+  return result;
+}
+{% endif %}
+
 {% if 'print' in builtins %}
 void builtin$print(Object output)
 {
