@@ -40,9 +40,9 @@ _TOKEN_MATCHERS = [
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
     ('equality_level_operator',         r'(<=|>=|==|!=|<|>)'),
+    ('assignment_operator',             r'='),
     ('addition_level_operator',         r'(\+|-)'),
     ('multiplication_level_operator',   r'(\*|//|%)'),
-    ('assignment_operator',             r'='),
 ]
 
 _TOKEN_MATCHERS = list(map(_make_token_matcher, _TOKEN_MATCHERS))

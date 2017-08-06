@@ -160,11 +160,13 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
             return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
 
         INFIX_OPERATOR_TO_FUNCTION_NAME = {
-            '+': 'add',
-            '-': 'subtract',
-            '*': 'multiply',
-            '//': 'integerDivide',
-            '%': 'modularDivide',
+            '+':    'add',
+            '-':    'subtract',
+            '*':    'multiply',
+            '//':   'integerDivide',
+            '%':    'modularDivide',
+            'and':  'and',
+            'or':   'or',
         }
 
         return CFunctionCallForFurInfixOperator(

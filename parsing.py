@@ -142,7 +142,7 @@ def _literal_level_expression_parser(index, tokens):
         _symbol_expression_parser,
     )(index, tokens)
 
-def _left_recursive_infix_operator_parser(token_type, operand_parser, order):
+def _left_recursive_infix_operator_parser(operator_token_matcher, operand_parser, order):
     def result_parser(index, tokens):
         failure = (False, index, None)
 
@@ -151,7 +151,7 @@ def _left_recursive_infix_operator_parser(token_type, operand_parser, order):
         if not success:
             return failure
 
-        while success and index < len(tokens) and tokens[index].type == token_type:
+        while success and index < len(tokens) and operator_token_matcher(tokens[index]):
             success = False
 
             if index + 1 < len(tokens):
@@ -172,23 +172,37 @@ def _left_recursive_infix_operator_parser(token_type, operand_parser, order):
 
 def _multiplication_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
-        'multiplication_level_operator',
+        lambda token: token.type == 'multiplication_level_operator',
         _literal_level_expression_parser,
         'multiplication_level',
     )(index, tokens)
 
 def _addition_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
-        'addition_level_operator',
+        lambda token: token.type == 'addition_level_operator',
         _multiplication_level_expression_parser,
         'addition_level',
     )(index, tokens)
 
 def _equality_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
-        'equality_level_operator',
+        lambda token: token.type == 'equality_level_operator',
         _addition_level_expression_parser,
         'equality_level',
+    )(index, tokens)
+
+def _and_level_expression_parser(index, tokens):
+    return _left_recursive_infix_operator_parser(
+        lambda token: token.type == 'symbol' and token.match == 'and',
+        _equality_level_expression_parser,
+        'and_level',
+    )(index, tokens)
+
+def _or_level_expression_parser(index, tokens):
+    return _left_recursive_infix_operator_parser(
+        lambda token: token.type == 'symbol' and token.match == 'or',
+        _and_level_expression_parser,
+        'or_level',
     )(index, tokens)
 
 def _comma_separated_list_parser(index, tokens):
@@ -266,7 +280,7 @@ def _function_call_expression_parser(index, tokens):
 
     return True, index, FurFunctionCallExpression(function=function, arguments=arguments)
 
-_expression_parser = _equality_level_expression_parser
+_expression_parser = _or_level_expression_parser
 
 def _assignment_statement_parser(index, tokens):
     # TODO Use a FurSymbolExpression for the target? Maybe this is actually not a good idea
