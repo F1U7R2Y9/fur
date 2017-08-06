@@ -113,6 +113,10 @@ BUILTINS = {
 }
 
 def transform_expression(builtin_dependencies, symbol_list, expression):
+    if isinstance(expression, parsing.FurParenthesizedExpression):
+        # Parentheses can be removed because everything in the C output is explicitly parenthesized
+        return transform_expression(builtin_dependencies, symbol_list, expression.internal)
+
     if isinstance(expression, parsing.FurNegationExpression):
         return transform_negation_expression(builtin_dependencies, symbol_list, expression)
 

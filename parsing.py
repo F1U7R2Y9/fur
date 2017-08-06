@@ -58,6 +58,13 @@ FurNegationExpression = collections.namedtuple(
     ],
 )
 
+FurParenthesizedExpression = collections.namedtuple(
+    'FurParenthesizedExpression',
+    [
+        'internal',
+    ],
+)
+
 FurAdditionExpression = collections.namedtuple(
     'FurAdditionExpression',
     [
@@ -120,6 +127,28 @@ def _symbol_expression_parser(index, tokens):
 
     return (False, index, None)
 
+def _parenthesized_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].type == 'open_parenthese':
+        index += 1
+    else:
+        return failure
+
+    success, index, internal = _expression_parser(index, tokens)
+    if not success:
+        return failure
+
+    if tokens[index].type == 'close_parenthese':
+        index += 1
+    else:
+        raise Exception('Expected ")" on line {}, found "{}"'.format(
+            tokens[index].line,
+            tokens[index].match,
+        ))
+
+    return True, index, FurParenthesizedExpression(internal=internal)
+
 def _negation_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -137,6 +166,7 @@ def _literal_level_expression_parser(index, tokens):
     return _or_parser(
         _negation_expression_parser,
         _function_call_expression_parser,
+        _parenthesized_expression_parser,
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
         _symbol_expression_parser,
@@ -264,7 +294,7 @@ def _function_call_expression_parser(index, tokens):
 
     return True, index, FurFunctionCallExpression(function=function, arguments=arguments)
 
-_expression_parser = _multiplication_level_expression_parser
+_expression_parser = _addition_level_expression_parser
 
 def _assignment_statement_parser(index, tokens):
     # TODO Use a FurSymbolExpression for the target
