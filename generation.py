@@ -55,26 +55,14 @@ def generate_expression(c_argument):
     if type(c_argument) in LITERAL_TYPE_MAPPING:
         return LITERAL_TYPE_MAPPING[type(c_argument)](c_argument)
 
-    INFIX_TYPE_MAPPING = {
-        transformation.CAdditionExpression: 'add',
-        transformation.CSubtractionExpression: 'subtract',
-        transformation.CMultiplicationExpression: 'multiply',
-        transformation.CIntegerDivisionExpression: 'integerDivide',
-        transformation.CModularDivisionExpression: 'modularDivide',
-        transformation.CEqualityExpression: 'equals',
-        transformation.CInequalityExpression: 'notEquals',
-        transformation.CGreaterThanExpression: 'greaterThan',
-        transformation.CLessThanExpression: 'lessThan',
-        transformation.CGreaterThanOrEqualExpression: 'greaterThanOrEqual',
-        transformation.CLessThanOrEqualExpression: 'lessThanOrEqual',
-        transformation.CAndExpression: 'and',
-    }
+    if isinstance(c_argument, transformation.CFunctionCallForFurInfixOperator):
+        return 'builtin${}({}, {})'.format(
+            c_argument.name,
+            generate_expression(c_argument.left),
+            generate_expression(c_argument.right),
+        )
 
-    return 'builtin${}({}, {})'.format(
-        INFIX_TYPE_MAPPING[type(c_argument)],
-        generate_expression(c_argument.left),
-        generate_expression(c_argument.right),
-    )
+    raise Exception('Could not handle expresssion "{}"'.format(c_argument))
 
 def generate_negation_expression(c_negation_expression):
     return 'builtin$negate({})'.format(

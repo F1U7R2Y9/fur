@@ -38,97 +38,10 @@ CNegationExpression = collections.namedtuple(
     ],
 )
 
-CAdditionExpression = collections.namedtuple(
-    'CAdditionExpression',
+CFunctionCallForFurInfixOperator = collections.namedtuple(
+    'CFunctionCallForFurInfixOperator',
     [
-        'left',
-        'right',
-    ],
-)
-
-CSubtractionExpression = collections.namedtuple(
-    'CSubtractionExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CMultiplicationExpression = collections.namedtuple(
-    'CMultiplicationExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CIntegerDivisionExpression = collections.namedtuple(
-    'CIntegerDivisionExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CEqualityExpression = collections.namedtuple(
-    'CEqualityExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CInequalityExpression = collections.namedtuple(
-    'CInequalityExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CGreaterThanOrEqualExpression = collections.namedtuple(
-    'CGreaterThanOrEqualExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CLessThanOrEqualExpression = collections.namedtuple(
-    'CLessThanOrEqualExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CGreaterThanExpression = collections.namedtuple(
-    'CGreaterThanExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CLessThanExpression = collections.namedtuple(
-    'CLessThanExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CAndExpression = collections.namedtuple(
-    'CAndExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-CModularDivisionExpression = collections.namedtuple(
-    'CModularDivisionExpression',
-    [
+        'name',
         'left',
         'right',
     ],
@@ -161,13 +74,13 @@ CProgram = collections.namedtuple(
     ],
 )
 
-EQUALITY_LEVEL_OPERATOR_MAPPING = {
-    '==':   CEqualityExpression,
-    '!=':   CInequalityExpression,
-    '<=':   CLessThanOrEqualExpression,
-    '>=':   CGreaterThanOrEqualExpression,
-    '<':    CLessThanExpression,
-    '>':    CGreaterThanExpression,
+EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING = {
+    '==':   'equals',
+    '!=':   'notEquals',
+    '<=':   'lessThanOrEqual',
+    '>=':   'greaterThanOrEqual',
+    '<':    'lessThan',
+    '>':    'greaterThan',
 }
 
 def transform_equality_level_expression(builtin_dependencies, symbol_list, expression):
@@ -188,15 +101,18 @@ def transform_equality_level_expression(builtin_dependencies, symbol_list, expre
         )
 
         # TODO Don't evaluate the middle expression twice
-        return CAndExpression(
+        return CFunctionCallForFurInfixOperator(
+            name='and',
             left=left,
-            right=EQUALITY_LEVEL_OPERATOR_MAPPING[expression.operator](
+            right=CFunctionCallForFurInfixOperator(
+                name=EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING[expression.operator],
                 left=middle,
                 right=right,
             ),
         )
 
-    return EQUALITY_LEVEL_OPERATOR_MAPPING[expression.operator](
+    return CFunctionCallForFurInfixOperator(
+        name=EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING[expression.operator],
         left=transform_expression(builtin_dependencies, symbol_list, expression.left),
         right=transform_expression(builtin_dependencies, symbol_list, expression.right),
     )
@@ -242,15 +158,16 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
     if isinstance(expression, parsing.FurEqualityLevelExpression):
         return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
 
-    INFIX_OPERATOR_TO_TYPE_MAPPING = {
-        '+': CAdditionExpression,
-        '-': CSubtractionExpression,
-        '*': CMultiplicationExpression,
-        '//': CIntegerDivisionExpression,
-        '%': CModularDivisionExpression,
+    INFIX_OPERATOR_TO_FUNCTION_NAME = {
+        '+': 'add',
+        '-': 'subtract',
+        '*': 'multiply',
+        '//': 'integerDivide',
+        '%': 'modularDivide',
     }
 
-    return INFIX_OPERATOR_TO_TYPE_MAPPING[expression.operator](
+    return CFunctionCallForFurInfixOperator(
+        name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
         left=transform_expression(builtin_dependencies, symbol_list, expression.left),
         right=transform_expression(builtin_dependencies, symbol_list, expression.right),
     )
