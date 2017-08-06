@@ -220,80 +220,63 @@ def _literal_level_expression_parser(index, tokens):
         _symbol_expression_parser,
     )(index, tokens)
 
+def _left_recursive_infix_operator_parser(token_type, operand_parser, operator_to_expression_type_mapping):
+    def result_parser(index, tokens):
+        failure = (False, index, None)
+
+        success, index, result = operand_parser(index, tokens)
+
+        if not success:
+            return failure
+
+        while success and index < len(tokens) and tokens[index].type == token_type:
+            success = False
+
+            if index + 1 < len(tokens):
+                success, try_index, value = operand_parser(index + 1, tokens)
+
+            if success:
+                result = operator_to_expression_type_mapping[tokens[index].match](left=result, right=value)
+                index = try_index
+
+        return True, index, result
+
+    return result_parser
+
 def _multiplication_level_expression_parser(index, tokens):
-    failure = (False, index, None)
-
-    success, index, result = _literal_level_expression_parser(index, tokens)
-
-    if not success:
-        return failure
-
-    while success and index < len(tokens) and tokens[index].type == 'multiplication_level_operator':
-        success = False
-
-        if index + 1 < len(tokens):
-            success, try_index, value = _literal_level_expression_parser(index + 1, tokens)
-
-        if success:
-            result = {
-                '*': FurMultiplicationExpression,
-                '//': FurIntegerDivisionExpression,
-                '%': FurModularDivisionExpression,
-            }[tokens[index].match](left=result, right=value)
-            index = try_index
-
-    return True, index, result
+    return _left_recursive_infix_operator_parser(
+        'multiplication_level_operator',
+        _literal_level_expression_parser,
+        {
+            '*': FurMultiplicationExpression,
+            '//': FurIntegerDivisionExpression,
+            '%': FurModularDivisionExpression,
+        },
+    )(index, tokens)
 
 def _addition_level_expression_parser(index, tokens):
-    failure = (False, index, None)
-
-    success, index, result = _multiplication_level_expression_parser(index, tokens)
-
-    if not success:
-        return failure
-
-    while success and index < len(tokens) and tokens[index].type == 'addition_level_operator':
-        success = False
-
-        if index + 1 < len(tokens):
-            success, try_index, value = _multiplication_level_expression_parser(index + 1, tokens)
-
-        if success:
-            result = {
-                '+': FurAdditionExpression,
-                '-': FurSubtractionExpression,
-            }[tokens[index].match](left=result, right=value)
-            index = try_index
-
-    return True, index, result
+    return _left_recursive_infix_operator_parser(
+        'addition_level_operator',
+        _multiplication_level_expression_parser,
+        {
+            '+': FurAdditionExpression,
+            '-': FurSubtractionExpression,
+        },
+    )(index, tokens)
 
 def _equality_level_expression_parser(index, tokens):
-    failure = (False, index, None)
-
-    success, index, result = _addition_level_expression_parser(index, tokens)
-
-    if not success:
-        return failure
-
-    while success and index < len(tokens) and tokens[index].type == 'equality_level_operator':
-        success = False
-
-        if index + 1 < len(tokens):
-            success, try_index, value = _addition_level_expression_parser(index + 1, tokens)
-
-        if success:
-            result = {
-                '==': FurEqualityExpression,
-                '!=': FurInequalityExpression,
-                '>=': FurGreaterThanOrEqualExpression,
-                '<=': FurLessThanOrEqualExpression,
-                '>': FurGreaterThanExpression,
-                '<': FurLessThanExpression,
-            }[tokens[index].match](left=result, right=value)
-            index = try_index
-
-    return True, index, result
-
+    return _left_recursive_infix_operator_parser(
+        'equality_level_operator',
+        _addition_level_expression_parser,
+        {
+            '==': FurEqualityExpression,
+            '!=': FurInequalityExpression,
+            '>=': FurGreaterThanOrEqualExpression,
+            '<=': FurLessThanOrEqualExpression,
+            '>': FurGreaterThanExpression,
+            '<': FurLessThanExpression,
+        },
+    )(index, tokens)
 
 def _comma_separated_list_parser(index, tokens):
     failure = (False, index, None)
