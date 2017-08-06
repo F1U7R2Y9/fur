@@ -16,6 +16,13 @@ CStringLiteral = collections.namedtuple(
     ],
 )
 
+CConstantExpression = collections.namedtuple(
+    'CConstantExpression',
+    [
+        'value'
+    ],
+)
+
 CSymbolExpression = collections.namedtuple(
     'CSymbolExpression',
     [
@@ -99,8 +106,10 @@ CProgram = collections.namedtuple(
 )
 
 BUILTINS = {
+    'false':    [],
     'pow':      ['math.h'],
     'print':    ['stdio.h'],
+    'true':     [],
 }
 
 def transform_expression(builtin_dependencies, symbol_list, expression):
@@ -111,6 +120,9 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
         return transform_function_call_expression(builtin_dependencies, symbol_list, expression)
 
     if isinstance(expression, parsing.FurSymbolExpression):
+        if expression.value in ['true', 'false']:
+            return CConstantExpression(value=expression.value)
+
         if expression.value not in symbol_list:
             symbol_list.append(expression.value)
 
@@ -162,6 +174,7 @@ def transform_negation_expression(builtin_dependencies, symbol_list, negation_ex
 
 def transform_function_call_expression(builtin_dependencies, symbol_list, function_call):
     if function_call.function.value in BUILTINS.keys():
+        # TODO Check that the builtin is actually callable
         builtin_dependencies.add(function_call.function.value)
 
         return CFunctionCallExpression(

@@ -33,12 +33,14 @@ const char * const SYMBOL_LIST[] = {
 
 enum Type
 {
+  BOOLEAN,
   INTEGER,
   STRING
 };
 
 union Instance
 {
+  bool boolean;
   int32_t integer;
   String* string;
 };
@@ -47,6 +49,16 @@ struct Object
 {
   Type type;
   Instance instance;
+};
+
+const Object TRUE = {
+  BOOLEAN,
+  true
+};
+
+const Object FALSE = {
+  BOOLEAN,
+  false
 };
 
 struct EnvironmentNode;
@@ -270,6 +282,10 @@ void builtin$print(Object output)
 {
   switch(output.type)
   {
+    case BOOLEAN:
+      fputs(output.instance.boolean ? "true" : "false", stdout);
+      break;
+
     case INTEGER:
       printf("%" PRId32, output.instance.integer);
       break;

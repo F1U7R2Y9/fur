@@ -23,6 +23,15 @@ def generate_string_literal(c_string_literal):
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
 
+
+CONSTANT_EXPRESSION_MAPPING = {
+    'true':     'TRUE',
+    'false':    'FALSE',
+}
+
+def generate_constant_expression(c_constant_expression):
+    return CONSTANT_EXPRESSION_MAPPING[c_constant_expression.value]
+
 def generate_symbol_expression(c_symbol_expression):
     return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
         c_symbol_expression.symbol_list_index,
@@ -39,6 +48,7 @@ def generate_expression(c_argument):
     LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CStringLiteral: generate_string_literal,
+        transformation.CConstantExpression: generate_constant_expression,
         transformation.CSymbolExpression: generate_symbol_expression,
     }
 
