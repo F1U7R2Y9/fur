@@ -220,7 +220,7 @@ def _comma_separated_list_parser(index, tokens):
 FurFunctionCallExpression = collections.namedtuple(
     'FurFunctionCallExpression',
     [
-        'name',
+        'function',
         'arguments',
     ],
 )
@@ -244,10 +244,10 @@ def _function_call_expression_parser(index, tokens):
     # TODO Use a FurSymbolExpression for the name
     failure = (False, index, None)
 
-    if tokens[index].type != 'symbol':
+    success, index, function = _symbol_expression_parser(index, tokens)
+
+    if not success:
         return failure
-    name = tokens[index].match
-    index += 1
 
     if tokens[index].type != 'open_parenthese':
         return failure
@@ -265,7 +265,7 @@ def _function_call_expression_parser(index, tokens):
         ))
     index += 1
 
-    return True, index, FurFunctionCallExpression(name=name, arguments=arguments)
+    return True, index, FurFunctionCallExpression(function=function, arguments=arguments)
 
 _expression_parser = _multiplication_level_expression_parser
 

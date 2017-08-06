@@ -140,11 +140,11 @@ def transform_negation_expression(builtin_dependencies, negation_expression):
     return CNegationExpression(value=transform_expression(builtin_dependencies, negation_expression.value))
 
 def transform_function_call_expression(builtin_dependencies, function_call):
-    if function_call.name in BUILTINS.keys():
-        builtin_dependencies.add(function_call.name)
+    if function_call.function.value in BUILTINS.keys():
+        builtin_dependencies.add(function_call.function.value)
 
         return CFunctionCallExpression(
-            name='builtin$' + function_call.name,
+            name='builtin$' + function_call.function.value,
             arguments=tuple(transform_expression(builtin_dependencies, arg) for arg in function_call.arguments),
         )
 
