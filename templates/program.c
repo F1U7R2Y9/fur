@@ -318,6 +318,15 @@ Object builtin$lessThanOrEqual(Object left, Object right)
   return result;
 }
 
+Object builtin$and(Object left, Object right)
+{
+  assert(left.type == BOOLEAN);
+  assert(right.type == BOOLEAN);
+
+  Object result = { BOOLEAN, left.instance.boolean && right.instance.boolean };
+  return result;
+}
+
 {% if 'pow' in builtins %}
 Object builtin$pow(Object base, Object exponent)
 {
