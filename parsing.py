@@ -65,89 +65,28 @@ FurParenthesizedExpression = collections.namedtuple(
     ],
 )
 
-FurAdditionExpression = collections.namedtuple(
-    'FurAdditionExpression',
+FurAdditionLevelExpression = collections.namedtuple(
+    'FurAdditionLevelExpression',
     [
+        'operator',
         'left',
         'right',
     ],
 )
 
-FurSubtractionExpression = collections.namedtuple(
-    'FurSubtractionExpression',
+FurMultiplicationLevelExpression = collections.namedtuple(
+    'FurMultiplicationLevelExpression',
     [
+        'operator',
         'left',
         'right',
     ],
 )
 
-FurMultiplicationExpression = collections.namedtuple(
-    'FurMultiplicationExpression',
+FurEqualityLevelExpression = collections.namedtuple(
+    'FurEqualityLevelExpression',
     [
-        'left',
-        'right',
-    ],
-)
-
-FurIntegerDivisionExpression = collections.namedtuple(
-    'FurIntegerDivisionExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurModularDivisionExpression = collections.namedtuple(
-    'FurModularDivisionExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurEqualityExpression = collections.namedtuple(
-    'FurEqualityExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurInequalityExpression = collections.namedtuple(
-    'FurInequalityExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurLessThanOrEqualExpression = collections.namedtuple(
-    'FurLessThanOrEqualExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurGreaterThanOrEqualExpression = collections.namedtuple(
-    'FurGreaterThanOrEqualExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurLessThanExpression = collections.namedtuple(
-    'FurLessThanExpression',
-    [
-        'left',
-        'right',
-    ],
-)
-
-FurGreaterThanExpression = collections.namedtuple(
-    'FurGreaterThanExpression',
-    [
+        'operator',
         'left',
         'right',
     ],
@@ -220,7 +159,7 @@ def _literal_level_expression_parser(index, tokens):
         _symbol_expression_parser,
     )(index, tokens)
 
-def _left_recursive_infix_operator_parser(token_type, operand_parser, operator_to_expression_type_mapping):
+def _left_recursive_infix_operator_parser(token_type, operand_parser, result_expression_type):
     def result_parser(index, tokens):
         failure = (False, index, None)
 
@@ -236,7 +175,11 @@ def _left_recursive_infix_operator_parser(token_type, operand_parser, operator_t
                 success, try_index, value = operand_parser(index + 1, tokens)
 
             if success:
-                result = operator_to_expression_type_mapping[tokens[index].match](left=result, right=value)
+                result = result_expression_type(
+                    operator=tokens[index].match,
+                    left=result,
+                    right=value,
+                )
                 index = try_index
 
         return True, index, result
@@ -247,35 +190,21 @@ def _multiplication_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'multiplication_level_operator',
         _literal_level_expression_parser,
-        {
-            '*': FurMultiplicationExpression,
-            '//': FurIntegerDivisionExpression,
-            '%': FurModularDivisionExpression,
-        },
+        FurMultiplicationLevelExpression,
     )(index, tokens)
 
 def _addition_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'addition_level_operator',
         _multiplication_level_expression_parser,
-        {
-            '+': FurAdditionExpression,
-            '-': FurSubtractionExpression,
-        },
+        FurAdditionLevelExpression,
     )(index, tokens)
 
 def _equality_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'equality_level_operator',
         _addition_level_expression_parser,
-        {
-            '==': FurEqualityExpression,
-            '!=': FurInequalityExpression,
-            '>=': FurGreaterThanOrEqualExpression,
-            '<=': FurLessThanOrEqualExpression,
-            '>': FurGreaterThanExpression,
-            '<': FurLessThanExpression,
-        },
+        FurEqualityLevelExpression,
     )(index, tokens)
 
 def _comma_separated_list_parser(index, tokens):

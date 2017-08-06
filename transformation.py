@@ -126,7 +126,6 @@ CAndExpression = collections.namedtuple(
     ],
 )
 
-
 CModularDivisionExpression = collections.namedtuple(
     'CModularDivisionExpression',
     [
@@ -162,18 +161,18 @@ CProgram = collections.namedtuple(
     ],
 )
 
-EQUALITY_LEVEL_TYPE_MAPPING = {
-    parsing.FurEqualityExpression: CEqualityExpression,
-    parsing.FurInequalityExpression: CInequalityExpression,
-    parsing.FurLessThanOrEqualExpression: CLessThanOrEqualExpression,
-    parsing.FurGreaterThanOrEqualExpression: CGreaterThanOrEqualExpression,
-    parsing.FurLessThanExpression: CLessThanExpression,
-    parsing.FurGreaterThanExpression: CGreaterThanExpression,
+EQUALITY_LEVEL_OPERATOR_MAPPING = {
+    '==':   CEqualityExpression,
+    '!=':   CInequalityExpression,
+    '<=':   CLessThanOrEqualExpression,
+    '>=':   CGreaterThanOrEqualExpression,
+    '<':    CLessThanExpression,
+    '>':    CGreaterThanExpression,
 }
 
 def transform_equality_level_expression(builtin_dependencies, symbol_list, expression):
     # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
-    if type(expression.left) in EQUALITY_LEVEL_TYPE_MAPPING:
+    if isinstance(expression.left, parsing.FurEqualityLevelExpression):
         left = transform_equality_level_expression(
             builtin_dependencies,
             symbol_list,
@@ -191,13 +190,13 @@ def transform_equality_level_expression(builtin_dependencies, symbol_list, expre
         # TODO Don't evaluate the middle expression twice
         return CAndExpression(
             left=left,
-            right=EQUALITY_LEVEL_TYPE_MAPPING[type(expression)](
+            right=EQUALITY_LEVEL_OPERATOR_MAPPING[expression.operator](
                 left=middle,
                 right=right,
             ),
         )
 
-    return EQUALITY_LEVEL_TYPE_MAPPING[type(expression)](
+    return EQUALITY_LEVEL_OPERATOR_MAPPING[expression.operator](
         left=transform_expression(builtin_dependencies, symbol_list, expression.left),
         right=transform_expression(builtin_dependencies, symbol_list, expression.right),
     )
@@ -240,18 +239,18 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
     if type(expression) in LITERAL_TYPE_MAPPING:
         return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
 
-    if type(expression) in EQUALITY_LEVEL_TYPE_MAPPING:
+    if isinstance(expression, parsing.FurEqualityLevelExpression):
         return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
 
-    INFIX_TYPE_MAPPING = {
-        parsing.FurAdditionExpression: CAdditionExpression,
-        parsing.FurSubtractionExpression: CSubtractionExpression,
-        parsing.FurMultiplicationExpression: CMultiplicationExpression,
-        parsing.FurIntegerDivisionExpression: CIntegerDivisionExpression,
-        parsing.FurModularDivisionExpression: CModularDivisionExpression,
+    INFIX_OPERATOR_TO_TYPE_MAPPING = {
+        '+': CAdditionExpression,
+        '-': CSubtractionExpression,
+        '*': CMultiplicationExpression,
+        '//': CIntegerDivisionExpression,
+        '%': CModularDivisionExpression,
     }
 
-    return INFIX_TYPE_MAPPING[type(expression)](
+    return INFIX_OPERATOR_TO_TYPE_MAPPING[expression.operator](
         left=transform_expression(builtin_dependencies, symbol_list, expression.left),
         right=transform_expression(builtin_dependencies, symbol_list, expression.right),
     )
