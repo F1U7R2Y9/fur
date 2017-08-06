@@ -25,13 +25,10 @@ struct String
   char* characters;
 };
 
-#define MAX_SYMBOL_LENGTH {{ MAX_SYMBOL_LENGTH }}
-struct Symbol;
-typedef struct Symbol Symbol;
-struct Symbol
-{
-  size_t length;
-  char name[MAX_SYMBOL_LENGTH];
+const char * const SYMBOL_LIST[] = {
+{% for symbol in symbol_list %}
+  "{{ symbol }}",
+{% endfor %}
 };
 
 enum Type
@@ -56,7 +53,7 @@ struct EnvironmentNode;
 typedef struct EnvironmentNode EnvironmentNode;
 struct EnvironmentNode
 {
-  Symbol* key;
+  const char* key;
   Object value;
   EnvironmentNode* next;
 };
@@ -81,16 +78,15 @@ void Environment_destruct(Environment* self)
   EnvironmentNode* next;
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
   {
-    // We don't need to destruct the keys, because those will be destructed at the end when the Runtime is destructed
     // We don't need to destruct the permanent strings, because those will be destructed at the end when the Runtime is destructed
-    // The above two comments represent all heap-allocated objects currently, so we don't need to destruct Objects (yet)
+    // The above comment represents all heap-allocated objects currently, so we don't need to destruct Objects (yet)
     next = node->next;
     free(node);
   }
 }
 
 // This need not be thread safe because environments exist on one thread only
-void Environment_set(Environment* self, Symbol* key, Object value)
+void Environment_set(Environment* self, const char* const key, Object value)
 {
   EnvironmentNode* node = malloc(sizeof(EnvironmentNode));
   node->key = key;
@@ -99,11 +95,11 @@ void Environment_set(Environment* self, Symbol* key, Object value)
   self->root = node;
 }
 
-Object Environment_get(Environment* self, Symbol* symbol)
+Object Environment_get(Environment* self, const char* const symbol)
 {
   for(EnvironmentNode* node = self->root; node != NULL; node = node->next)
   {
-    // We can compare pointers because pointers are unique within Runtime->symbols
+    // We can compare pointers because pointers are unique in the SYMBOLS_LIST
     if(node->key == symbol)
     {
       return node->value;
@@ -115,15 +111,11 @@ Object Environment_get(Environment* self, Symbol* symbol)
 }
 
 
-// TODO Allocate all symbols and strings as static constants so we can remove the level of indirection
 struct Runtime
 {
   size_t permanentStringsLength;
   size_t permanentStringsAllocated;
   String** permanentStrings;
-  size_t symbolsLength;
-  size_t symbolsAllocated;
-  Symbol** symbols;
 };
 
 Runtime* Runtime_construct()
@@ -132,9 +124,6 @@ Runtime* Runtime_construct()
   result->permanentStringsLength = 0;
   result->permanentStringsAllocated = 0;
   result->permanentStrings = NULL;
-  result->symbolsLength = 0;
-  result->symbolsAllocated =0;
-  result->symbols = NULL;
   return result;
 }
 
@@ -145,13 +134,7 @@ void Runtime_destruct(Runtime* self)
     free(self->permanentStrings[i]);
   }
 
-  for(size_t i = 0; i < self->symbolsLength; i++)
-  {
-    free(self->symbols[i]);
-  }
-
   free(self->permanentStrings);
-  free(self->symbols);
   free(self);
 }
 
@@ -179,49 +162,6 @@ void Runtime_addPermanentString(Runtime* self, String* string)
 
   self->permanentStrings[self->permanentStringsLength] = string;
   self->permanentStringsLength++;
-}
-
-// TODO Optimize this by sorting the symbols
-// TODO Make this function thread safe
-Symbol* Runtime_symbol(Runtime* self, const char* name)
-{
-  assert(strlen(name) <= MAX_SYMBOL_LENGTH);
-
-  for(size_t i = 0; i < self->symbolsLength; i++)
-  {
-    if(strcmp(self->symbols[i]->name, name) == 0)
-    {
-      return self->symbols[i];
-    }
-  }
-
-  if(self->symbolsLength == self->symbolsAllocated)
-  {
-    if(self->symbolsAllocated == 0)
-    {
-      self->symbolsAllocated = 8;
-    }
-    else
-    {
-      self->symbolsAllocated = self->symbolsAllocated * 2;
-    }
-
-    self->symbols = realloc(
-      self->symbols,
-      sizeof(Symbol*) * self->symbolsAllocated
-    );
-
-    // TODO Handle realloc returning NULL
-  }
-
-  Symbol* result = malloc(sizeof(Symbol));
-  result->length = strlen(name);
-  strcpy(result->name, name);
-
-  self->symbols[self->symbolsLength] = result;
-  self->symbolsLength++;
-
-  return result;
 }
 
 Object integerLiteral(int32_t literal)

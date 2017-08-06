@@ -1,6 +1,5 @@
 import jinja2
 
-import parsing
 import transformation
 
 ENV = jinja2.Environment(
@@ -25,7 +24,10 @@ def generate_string_literal(c_string_literal):
     )
 
 def generate_symbol_expression(c_symbol_expression):
-    return 'Environment_get(environment, Runtime_symbol(runtime, "{}"))'.format(c_symbol_expression.value)
+    return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
+        c_symbol_expression.symbol_list_index,
+        c_symbol_expression.symbol,
+    )
 
 def generate_expression(c_argument):
     if isinstance(c_argument, transformation.CNegationExpression):
@@ -73,7 +75,8 @@ def generate_expression_statement(c_function_call_statement):
     return '{};'.format(generate_expression(c_function_call_statement))
 
 def generate_assignment_statement(c_assignment_statement):
-    return 'Environment_set(environment, Runtime_symbol(runtime, "{}"), {});'.format(
+    return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
+        c_assignment_statement.target_symbol_list_index,
         c_assignment_statement.target,
         generate_expression(c_assignment_statement.expression),
     )
@@ -87,10 +90,10 @@ def generate_statement(statement):
 def generate(c_program):
     template = ENV.get_template('program.c')
     return template.render(
-        MAX_SYMBOL_LENGTH=parsing.MAX_SYMBOL_LENGTH,
         builtins=list(sorted(c_program.builtins)),
         statements=[generate_statement(statement) for statement in c_program.statements],
         standard_libraries=list(sorted(c_program.standard_libraries)),
+        symbol_list=c_program.symbol_list,
     )
 
 if __name__ == '__main__':

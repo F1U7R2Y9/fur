@@ -1,8 +1,5 @@
 import collections
 
-# TODO Check max symbol length in assignments, function calls, and symbol expressions
-MAX_SYMBOL_LENGTH = 16
-
 def _or_parser(*parsers):
     def result_parser(index, tokens):
         failure = (False, index, None)
