@@ -65,27 +65,10 @@ FurParenthesizedExpression = collections.namedtuple(
     ],
 )
 
-FurAdditionLevelExpression = collections.namedtuple(
-    'FurAdditionLevelExpression',
+FurInfixExpression = collections.namedtuple(
+    'FurInfixExpression',
     [
-        'operator',
-        'left',
-        'right',
-    ],
-)
-
-FurMultiplicationLevelExpression = collections.namedtuple(
-    'FurMultiplicationLevelExpression',
-    [
-        'operator',
-        'left',
-        'right',
-    ],
-)
-
-FurEqualityLevelExpression = collections.namedtuple(
-    'FurEqualityLevelExpression',
-    [
+        'order',
         'operator',
         'left',
         'right',
@@ -159,7 +142,7 @@ def _literal_level_expression_parser(index, tokens):
         _symbol_expression_parser,
     )(index, tokens)
 
-def _left_recursive_infix_operator_parser(token_type, operand_parser, result_expression_type):
+def _left_recursive_infix_operator_parser(token_type, operand_parser, order):
     def result_parser(index, tokens):
         failure = (False, index, None)
 
@@ -175,7 +158,8 @@ def _left_recursive_infix_operator_parser(token_type, operand_parser, result_exp
                 success, try_index, value = operand_parser(index + 1, tokens)
 
             if success:
-                result = result_expression_type(
+                result = FurInfixExpression(
+                    order=order,
                     operator=tokens[index].match,
                     left=result,
                     right=value,
@@ -190,21 +174,21 @@ def _multiplication_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'multiplication_level_operator',
         _literal_level_expression_parser,
-        FurMultiplicationLevelExpression,
+        'multiplication_level',
     )(index, tokens)
 
 def _addition_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'addition_level_operator',
         _multiplication_level_expression_parser,
-        FurAdditionLevelExpression,
+        'addition_level',
     )(index, tokens)
 
 def _equality_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         'equality_level_operator',
         _addition_level_expression_parser,
-        FurEqualityLevelExpression,
+        'equality_level',
     )(index, tokens)
 
 def _comma_separated_list_parser(index, tokens):

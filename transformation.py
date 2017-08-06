@@ -85,7 +85,7 @@ EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING = {
 
 def transform_equality_level_expression(builtin_dependencies, symbol_list, expression):
     # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
-    if isinstance(expression.left, parsing.FurEqualityLevelExpression):
+    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'equality_level':
         left = transform_equality_level_expression(
             builtin_dependencies,
             symbol_list,
@@ -155,22 +155,25 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
     if type(expression) in LITERAL_TYPE_MAPPING:
         return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
 
-    if isinstance(expression, parsing.FurEqualityLevelExpression):
-        return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
+    if isinstance(expression, parsing.FurInfixExpression):
+        if expression.order == 'equality_level':
+            return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
 
-    INFIX_OPERATOR_TO_FUNCTION_NAME = {
-        '+': 'add',
-        '-': 'subtract',
-        '*': 'multiply',
-        '//': 'integerDivide',
-        '%': 'modularDivide',
-    }
+        INFIX_OPERATOR_TO_FUNCTION_NAME = {
+            '+': 'add',
+            '-': 'subtract',
+            '*': 'multiply',
+            '//': 'integerDivide',
+            '%': 'modularDivide',
+        }
 
-    return CFunctionCallForFurInfixOperator(
-        name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
-        left=transform_expression(builtin_dependencies, symbol_list, expression.left),
-        right=transform_expression(builtin_dependencies, symbol_list, expression.right),
-    )
+        return CFunctionCallForFurInfixOperator(
+            name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
+            left=transform_expression(builtin_dependencies, symbol_list, expression.left),
+            right=transform_expression(builtin_dependencies, symbol_list, expression.right),
+        )
+
+    raise Exception('Could not transform expression "{}"'.format(expression))
 
 def transform_assignment_statement(builtin_dependencies, symbol_list, assignment_statement):
     # TODO Check that target is not a builtin
