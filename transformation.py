@@ -70,6 +70,63 @@ CIntegerDivisionExpression = collections.namedtuple(
     ],
 )
 
+CEqualityExpression = collections.namedtuple(
+    'CEqualityExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CInequalityExpression = collections.namedtuple(
+    'CInequalityExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CGreaterThanOrEqualExpression = collections.namedtuple(
+    'CGreaterThanOrEqualExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CLessThanOrEqualExpression = collections.namedtuple(
+    'CLessThanOrEqualExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CGreaterThanExpression = collections.namedtuple(
+    'CGreaterThanExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CLessThanExpression = collections.namedtuple(
+    'CLessThanExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+CAndExpression = collections.namedtuple(
+    'CAndExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+
 CModularDivisionExpression = collections.namedtuple(
     'CModularDivisionExpression',
     [
@@ -104,6 +161,46 @@ CProgram = collections.namedtuple(
         'symbol_list',
     ],
 )
+
+EQUALITY_LEVEL_TYPE_MAPPING = {
+    parsing.FurEqualityExpression: CEqualityExpression,
+    parsing.FurInequalityExpression: CInequalityExpression,
+    parsing.FurLessThanOrEqualExpression: CLessThanOrEqualExpression,
+    parsing.FurGreaterThanOrEqualExpression: CGreaterThanOrEqualExpression,
+    parsing.FurLessThanExpression: CLessThanExpression,
+    parsing.FurGreaterThanExpression: CGreaterThanExpression,
+}
+
+def transform_equality_level_expression(builtin_dependencies, symbol_list, expression):
+    # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
+    if type(expression.left) in EQUALITY_LEVEL_TYPE_MAPPING:
+        left = transform_equality_level_expression(
+            builtin_dependencies,
+            symbol_list,
+            expression.left
+        )
+
+        middle = left.right
+
+        right = transform_expression(
+            builtin_dependencies,
+            symbol_list,
+            expression.right,
+        )
+
+        # TODO Don't evaluate the middle expression twice
+        return CAndExpression(
+            left=left,
+            right=EQUALITY_LEVEL_TYPE_MAPPING[type(expression)](
+                left=middle,
+                right=right,
+            ),
+        )
+
+    return EQUALITY_LEVEL_TYPE_MAPPING[type(expression)](
+        left=transform_expression(builtin_dependencies, symbol_list, expression.left),
+        right=transform_expression(builtin_dependencies, symbol_list, expression.right),
+    )
 
 BUILTINS = {
     'false':    [],
@@ -142,6 +239,9 @@ def transform_expression(builtin_dependencies, symbol_list, expression):
 
     if type(expression) in LITERAL_TYPE_MAPPING:
         return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
+
+    if type(expression) in EQUALITY_LEVEL_TYPE_MAPPING:
+        return transform_equality_level_expression(builtin_dependencies, symbol_list, expression)
 
     INFIX_TYPE_MAPPING = {
         parsing.FurAdditionExpression: CAdditionExpression,

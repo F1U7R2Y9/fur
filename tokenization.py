@@ -36,12 +36,13 @@ _TOKEN_MATCHERS = [
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
     ('comma',                           r','),
-    ('assignment_operator',             r'='),
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
+    ('equality_level_operator',         r'(<=|>=|==|!=|<|>)'),
     ('addition_level_operator',         r'(\+|-)'),
-    ('multiplication_level_operator',  r'(\*|//|%)'),
+    ('multiplication_level_operator',   r'(\*|//|%)'),
+    ('assignment_operator',             r'='),
 ]
 
 _TOKEN_MATCHERS = list(map(_make_token_matcher, _TOKEN_MATCHERS))
@@ -192,6 +193,72 @@ if __name__ == '__main__':
                 (Token(
                     type='assignment_operator',
                     match='=',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_equality_operator(self):
+            self.assertEqual(
+                tokenize('=='),
+                (Token(
+                    type='equality_level_operator',
+                    match='==',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_greater_than_or_equal_operator(self):
+            self.assertEqual(
+                tokenize('>='),
+                (Token(
+                    type='equality_level_operator',
+                    match='>=',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_less_than_or_equal_operator(self):
+            self.assertEqual(
+                tokenize('<='),
+                (Token(
+                    type='equality_level_operator',
+                    match='<=',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_greater_than_equal_operator(self):
+            self.assertEqual(
+                tokenize('>'),
+                (Token(
+                    type='equality_level_operator',
+                    match='>',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_less_than_equal_operator(self):
+            self.assertEqual(
+                tokenize('<'),
+                (Token(
+                    type='equality_level_operator',
+                    match='<',
+                    index=0,
+                    line=1,
+                ),),
+            )
+
+        def test_tokenizes_not_equal_operator(self):
+            self.assertEqual(
+                tokenize('!='),
+                (Token(
+                    type='equality_level_operator',
+                    match='!=',
                     index=0,
                     line=1,
                 ),),

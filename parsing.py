@@ -105,6 +105,54 @@ FurModularDivisionExpression = collections.namedtuple(
     ],
 )
 
+FurEqualityExpression = collections.namedtuple(
+    'FurEqualityExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurInequalityExpression = collections.namedtuple(
+    'FurInequalityExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurLessThanOrEqualExpression = collections.namedtuple(
+    'FurLessThanOrEqualExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurGreaterThanOrEqualExpression = collections.namedtuple(
+    'FurGreaterThanOrEqualExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurLessThanExpression = collections.namedtuple(
+    'FurLessThanExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
+FurGreaterThanExpression = collections.namedtuple(
+    'FurGreaterThanExpression',
+    [
+        'left',
+        'right',
+    ],
+)
+
 def _integer_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -219,12 +267,40 @@ def _addition_level_expression_parser(index, tokens):
 
     return True, index, result
 
+def _equality_level_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    success, index, result = _addition_level_expression_parser(index, tokens)
+
+    if not success:
+        return failure
+
+    while success and index < len(tokens) and tokens[index].type == 'equality_level_operator':
+        success = False
+
+        if index + 1 < len(tokens):
+            success, try_index, value = _addition_level_expression_parser(index + 1, tokens)
+
+        if success:
+            result = {
+                '==': FurEqualityExpression,
+                '!=': FurInequalityExpression,
+                '>=': FurGreaterThanOrEqualExpression,
+                '<=': FurLessThanOrEqualExpression,
+                '>': FurGreaterThanExpression,
+                '<': FurLessThanExpression,
+            }[tokens[index].match](left=result, right=value)
+            index = try_index
+
+    return True, index, result
+
+
 def _comma_separated_list_parser(index, tokens):
     failure = (False, index, None)
 
     expressions = []
 
-    success, index, expression = _addition_level_expression_parser(index, tokens)
+    success, index, expression = _expression_parser(index, tokens)
 
     if success:
         expressions.append(expression)
@@ -235,7 +311,7 @@ def _comma_separated_list_parser(index, tokens):
         success = False
 
         if index + 1 < len(tokens):
-            success, try_index, expression = _addition_level_expression_parser(index + 1, tokens)
+            success, try_index, expression = _expression_parser(index + 1, tokens)
 
         if success:
             expressions.append(expression)
@@ -294,7 +370,7 @@ def _function_call_expression_parser(index, tokens):
 
     return True, index, FurFunctionCallExpression(function=function, arguments=arguments)
 
-_expression_parser = _addition_level_expression_parser
+_expression_parser = _equality_level_expression_parser
 
 def _assignment_statement_parser(index, tokens):
     # TODO Use a FurSymbolExpression for the target? Maybe this is actually not a good idea

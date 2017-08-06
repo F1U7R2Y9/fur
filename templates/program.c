@@ -264,6 +264,60 @@ Object builtin$modularDivide(Object left, Object right)
   return result;
 }
 
+Object builtin$equals(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer == right.instance.integer };
+  return result;
+}
+
+Object builtin$notEquals(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer != right.instance.integer };
+  return result;
+}
+
+Object builtin$greaterThan(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer > right.instance.integer };
+  return result;
+}
+
+Object builtin$lessThan(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer < right.instance.integer };
+  return result;
+}
+
+Object builtin$greaterThanOrEqual(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer >= right.instance.integer };
+  return result;
+}
+
+Object builtin$lessThanOrEqual(Object left, Object right)
+{
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = { BOOLEAN, left.instance.integer <= right.instance.integer };
+  return result;
+}
+
 {% if 'pow' in builtins %}
 Object builtin$pow(Object base, Object exponent)
 {

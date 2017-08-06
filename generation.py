@@ -61,6 +61,13 @@ def generate_expression(c_argument):
         transformation.CMultiplicationExpression: 'multiply',
         transformation.CIntegerDivisionExpression: 'integerDivide',
         transformation.CModularDivisionExpression: 'modularDivide',
+        transformation.CEqualityExpression: 'equals',
+        transformation.CInequalityExpression: 'notEquals',
+        transformation.CGreaterThanExpression: 'greaterThan',
+        transformation.CLessThanExpression: 'lessThan',
+        transformation.CGreaterThanOrEqualExpression: 'greaterThanOrEqual',
+        transformation.CLessThanOrEqualExpression: 'lessThanOrEqual',
+        transformation.CAndExpression: 'and',
     }
 
     return 'builtin${}({}, {})'.format(
