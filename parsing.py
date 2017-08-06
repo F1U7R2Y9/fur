@@ -297,7 +297,7 @@ def _function_call_expression_parser(index, tokens):
 _expression_parser = _addition_level_expression_parser
 
 def _assignment_statement_parser(index, tokens):
-    # TODO Use a FurSymbolExpression for the target
+    # TODO Use a FurSymbolExpression for the target? Maybe this is actually not a good idea
     failure = (False, index, None)
 
     if tokens[index].type != 'symbol':
@@ -321,6 +321,7 @@ def _assignment_statement_parser(index, tokens):
     return True, index, FurAssignmentStatement(target=target, expression=expression)
 
 def _statement_parser(index, tokens):
+    # TODO It would be good to include newlines in the parsing of this because it removes the ambiguity between "function(argument)" (one statement) and "function\n(argument)" (two statements)
     return _or_parser(
         _assignment_statement_parser,
         _expression_parser,
