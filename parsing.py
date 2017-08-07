@@ -1,5 +1,11 @@
 import collections
 
+def consume_newlines(index, tokens):
+    while index < len(tokens) and tokens[index].type == 'newline':
+        index += 1
+
+    return True, index, None
+
 def _or_parser(*parsers):
     def result_parser(index, tokens):
         failure = (False, index, None)
@@ -307,7 +313,11 @@ def _assignment_statement_parser(index, tokens):
     return True, index, FurAssignmentStatement(target=target, expression=expression)
 
 def _statement_parser(index, tokens):
-    # TODO It would be good to include newlines in the parsing of this because it removes the ambiguity between "function(argument)" (one statement) and "function\n(argument)" (two statements)
+    _, index, _ = consume_newlines(index, tokens)
+
+    if index == len(tokens):
+        return (False, index, None)
+
     return _or_parser(
         _assignment_statement_parser,
         _expression_parser,

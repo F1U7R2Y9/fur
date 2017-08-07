@@ -43,6 +43,7 @@ _TOKEN_MATCHERS = [
     ('assignment_operator',             r'='),
     ('addition_level_operator',         r'(\+|-)'),
     ('multiplication_level_operator',   r'(\*|//|%)'),
+    ('newline',                         r'\n'),
 ]
 
 _TOKEN_MATCHERS = list(map(_make_token_matcher, _TOKEN_MATCHERS))
@@ -67,11 +68,13 @@ def tokenize(source):
                 break
 
         if not success:
-            raise Exception('Unexpected character "{}"'.format(source[index]))
+            raise Exception('Unexpected character "{}" on line {}'.format(
+                source[index],
+                line,
+            ))
 
-        while index < len(source) and source[index] in set(['\n']):
+        if token.type == 'newline':
             line += 1
-            index += 1
 
 if __name__ == '__main__':
     import unittest
@@ -264,12 +267,12 @@ if __name__ == '__main__':
                 ),),
             )
 
-        def test_handles_trailing_newline(self):
+        def test_tokenizes_newline(self):
             self.assertEqual(
-                tokenize('print\n'),
+                tokenize('\n'),
                 (Token(
-                    type='symbol',
-                    match='print',
+                    type='newline',
+                    match='\n',
                     index=0,
                     line=1,
                 ),),
@@ -294,6 +297,12 @@ if __name__ == '__main__':
                         type='symbol',
                         match='print',
                         index=0,
+                        line=1,
+                    ),
+                    Token(
+                        type='newline',
+                        match='\n',
+                        index=5,
                         line=1,
                     ),
                     Token(
