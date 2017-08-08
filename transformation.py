@@ -233,6 +233,7 @@ def transform_expression(accumulators, expression):
         parsing.FurInfixExpression: transform_infix_expression, # TODO Shouldn't need this
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
+        normalization.NormalNegationExpression: transform_negation_expression,
         normalization.NormalVariableExpression: transform_variable_expression,
     }[type(expression)](accumulators, expression)
 
@@ -250,9 +251,9 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
         ),
     )
 
-def transform_negation_expression(accumulators, negation_expression):
+def transform_negation_expression(accumulators, expression):
     return CNegationExpression(
-        value=transform_expression(accumulators, negation_expression.value),
+        value=transform_expression(accumulators, expression.internal_expression),
     )
 
 def transform_function_call_expression(accumulators, function_call):

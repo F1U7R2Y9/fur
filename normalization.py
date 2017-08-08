@@ -9,6 +9,13 @@ NormalVariableExpression = collections.namedtuple(
     ],
 )
 
+NormalNegationExpression = collections.namedtuple(
+    'NormalNegationExpression',
+    [
+        'internal_expression',
+    ],
+)
+
 NormalInfixExpression = collections.namedtuple(
     'NormalInfixExpression',
     [
@@ -238,6 +245,21 @@ def normalize_infix_expression(counter, expression):
         'or_level': normalize_boolean_expression,
     }[expression.order](counter, expression)
 
+def normalize_negation_expression(counter, expression):
+    counter, prestatements, internal_expression = normalize_expression(counter, expression.value)
+
+    internal_variable = '${}'.format(counter)
+    counter += 1
+
+    return (
+        counter,
+        prestatements + (NormalVariableInitializationStatement(variable=internal_variable, expression=internal_expression),),
+        NormalNegationExpression(internal_expression=NormalVariableExpression(variable=internal_variable)),
+    )
+
+def normalize_parenthesized_expression(counter, expression):
+    return normalize_expression(counter, expression.internal)
+
 def normalize_expression(counter, expression):
     return {
         NormalInfixExpression: fake_normalization,
@@ -245,8 +267,8 @@ def normalize_expression(counter, expression):
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: fake_normalization,
-        parsing.FurNegationExpression: fake_normalization, # TODO Don't fake this
-        parsing.FurParenthesizedExpression: fake_normalization, # TODO Don't fake this
+        parsing.FurNegationExpression: normalize_negation_expression,
+        parsing.FurParenthesizedExpression: normalize_parenthesized_expression,
         parsing.FurStringLiteralExpression: fake_normalization,
         parsing.FurSymbolExpression: fake_normalization,
     }[type(expression)](counter, expression)

@@ -64,6 +64,7 @@ FurNegationExpression = collections.namedtuple(
     ],
 )
 
+# TODO We don't need to wrap this type
 FurParenthesizedExpression = collections.namedtuple(
     'FurParenthesizedExpression',
     [
