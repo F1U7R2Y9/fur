@@ -28,6 +28,9 @@ def generate_symbol_expression(c_symbol_expression):
         c_symbol_expression.symbol,
     )
 
+def generate_variable_expression(expression):
+    return expression.variable
+
 def generate_expression(expression):
     if isinstance(expression, transformation.CNegationExpression):
         return generate_negation_expression(expression)
@@ -52,7 +55,9 @@ def generate_expression(expression):
             generate_expression(expression.right),
         )
 
-    raise Exception('Could not handle expresssion "{}"'.format(expression))
+    return {
+        transformation.CVariableExpression: generate_variable_expression,
+    }[type(expression)](expression)
 
 def generate_negation_expression(c_negation_expression):
     return 'builtin$negate({})'.format(
@@ -65,22 +70,29 @@ def generate_function_call(c_function_call):
         ', '.join(generate_expression(argument) for argument in c_function_call.arguments),
     )
 
-def generate_expression_statement(c_function_call_statement):
+def generate_expression_statement(statement):
     # TODO Do we need to garbage collect the results of arbitrary statements?
-    return '{};'.format(generate_expression(c_function_call_statement))
+    return '{};'.format(generate_expression(statement.expression))
 
-def generate_assignment_statement(c_assignment_statement):
+def generate_symbol_assignment_statement(c_assignment_statement):
     return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
         c_assignment_statement.target_symbol_list_index,
         c_assignment_statement.target,
         generate_expression(c_assignment_statement.expression),
     )
 
-def generate_statement(statement):
-    if isinstance(statement, transformation.CAssignmentStatement):
-        return generate_assignment_statement(statement)
+def generate_variable_assignment_statement(statement):
+    return 'Object {} = {};'.format(
+        statement.variable,
+        generate_expression(statement.expression),
+    )
 
-    return generate_expression_statement(statement)
+def generate_statement(statement):
+    return {
+        transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
+        transformation.CExpressionStatement: generate_expression_statement,
+        transformation.CVariableAssignmentStatement: generate_variable_assignment_statement,
+    }[type(statement)](statement)
 
 def generate(program):
     template = ENV.get_template('program.c')

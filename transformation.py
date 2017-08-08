@@ -1,5 +1,6 @@
 import collections
 
+import normalization
 import parsing
 
 CIntegerLiteral = collections.namedtuple(
@@ -21,6 +22,13 @@ CConstantExpression = collections.namedtuple(
     'CConstantExpression',
     [
         'value'
+    ],
+)
+
+CVariableExpression = collections.namedtuple(
+    'CVariableExpression',
+    [
+        'variable',
     ],
 )
 
@@ -56,11 +64,26 @@ CFunctionCallExpression = collections.namedtuple(
     ],
 )
 
-CAssignmentStatement = collections.namedtuple(
-    'CAssignmentStatement',
+CSymbolAssignmentStatement = collections.namedtuple(
+    'CSymbolAssignmentStatement',
     [
         'target',
         'target_symbol_list_index',
+        'expression',
+    ],
+)
+
+CVariableAssignmentStatement = collections.namedtuple(
+    'CVariableAssignmentStatement',
+    [
+        'variable',
+        'expression',
+    ],
+)
+
+CExpressionStatement = collections.namedtuple(
+    'CExpressionStatement',
+    [
         'expression',
     ],
 )
@@ -124,6 +147,9 @@ BUILTINS = {
     'true':     [],
 }
 
+def transform_variable_expression(accumulators, expression):
+    return CVariableExpression(variable=expression.variable)
+
 def transform_expression(accumulators, expression):
     if isinstance(expression, parsing.FurParenthesizedExpression):
         # Parentheses can be removed because everything in the C output is explicitly parenthesized
@@ -185,14 +211,17 @@ def transform_expression(accumulators, expression):
             right=transform_expression(accumulators, expression.right),
         )
 
-    raise Exception('Could not transform expression "{}"'.format(expression))
+    # TODO Handle all possible types in this form
+    return {
+        normalization.NormalVariableExpression: transform_variable_expression,
+    }[type(expression)](accumulators, expression)
 
-def transform_assignment_statement(accumulators, assignment_statement):
+def transform_symbol_assignment_statement(accumulators, assignment_statement):
     # TODO Check that target is not a builtin
     if assignment_statement.target not in accumulators.symbol_list:
         accumulators.symbol_list.append(assignment_statement.target)
 
-    return CAssignmentStatement(
+    return CSymbolAssignmentStatement(
         target=assignment_statement.target,
         target_symbol_list_index=accumulators.symbol_list.index(assignment_statement.target),
         expression=transform_expression(
@@ -222,14 +251,27 @@ def transform_function_call_expression(accumulators, function_call):
     raise Exception()
 
 def transform_expression_statement(accumulators, statement):
-    return {
+    expression = {
         parsing.FurFunctionCallExpression: transform_function_call_expression,
+        normalization.NormalFunctionCallExpression: transform_function_call_expression,
     }[type(statement.expression)](accumulators, statement.expression)
+
+    return CExpressionStatement(
+        expression=expression,
+    )
+
+def transform_variable_assignment_statement(accumulators, statement):
+    return CVariableAssignmentStatement(
+        variable=statement.variable,
+        expression=transform_expression(accumulators, statement.expression),
+    )
 
 def transform_statement(accumulators, statement):
     return {
-        parsing.FurAssignmentStatement: transform_assignment_statement,
+        parsing.FurAssignmentStatement: transform_symbol_assignment_statement,
         parsing.FurExpressionStatement: transform_expression_statement,
+        normalization.NormalVariableAssignmentStatement: transform_variable_assignment_statement,
+        normalization.NormalExpressionStatement: transform_expression_statement,
     }[type(statement)](accumulators, statement)
 
 
