@@ -1,6 +1,7 @@
 import sys
 
 import generation
+import normalization
 import parsing
 import tokenization
 import transformation
@@ -12,7 +13,8 @@ with open(source_path, 'r') as f:
 
 tokens = tokenization.tokenize(source)
 parsed = parsing.parse(tokens)
-transformed = transformation.transform(parsed)
+normalized = normalization.normalize(parsed)
+transformed = transformation.transform(normalized)
 generated = generation.generate(transformed)
 
 assert source_path.endswith('.fur')

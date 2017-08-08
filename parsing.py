@@ -244,6 +244,13 @@ FurFunctionCallExpression = collections.namedtuple(
     ],
 )
 
+FurExpressionStatement = collections.namedtuple(
+    'FurExpressionStatement',
+    [
+        'expression',
+    ],
+)
+
 FurAssignmentStatement = collections.namedtuple(
     'FurAssignmentStatement',
     [
@@ -288,6 +295,16 @@ def _function_call_expression_parser(index, tokens):
 
 _expression_parser = _or_level_expression_parser
 
+def _expression_statement_parser(index, tokens):
+    failure = (False, index, None)
+
+    success, index, expression = _expression_parser(index, tokens)
+
+    if not success:
+        return failure
+
+    return (True, index, FurExpressionStatement(expression=expression))
+
 def _assignment_statement_parser(index, tokens):
     # TODO Use a FurSymbolExpression for the target? Maybe this is actually not a good idea
     failure = (False, index, None)
@@ -320,7 +337,7 @@ def _statement_parser(index, tokens):
 
     return _or_parser(
         _assignment_statement_parser,
-        _expression_parser,
+        _expression_statement_parser,
     )(index, tokens)
 
 def _program_formatter(statement_list):

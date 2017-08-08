@@ -28,12 +28,12 @@ def generate_symbol_expression(c_symbol_expression):
         c_symbol_expression.symbol,
     )
 
-def generate_expression(c_argument):
-    if isinstance(c_argument, transformation.CNegationExpression):
-        return generate_negation_expression(c_argument)
+def generate_expression(expression):
+    if isinstance(expression, transformation.CNegationExpression):
+        return generate_negation_expression(expression)
 
-    if isinstance(c_argument, transformation.CFunctionCallExpression):
-        return generate_function_call(c_argument)
+    if isinstance(expression, transformation.CFunctionCallExpression):
+        return generate_function_call(expression)
 
     LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
@@ -42,17 +42,17 @@ def generate_expression(c_argument):
         transformation.CSymbolExpression: generate_symbol_expression,
     }
 
-    if type(c_argument) in LITERAL_TYPE_MAPPING:
-        return LITERAL_TYPE_MAPPING[type(c_argument)](c_argument)
+    if type(expression) in LITERAL_TYPE_MAPPING:
+        return LITERAL_TYPE_MAPPING[type(expression)](expression)
 
-    if isinstance(c_argument, transformation.CFunctionCallForFurInfixOperator):
+    if isinstance(expression, transformation.CFunctionCallForFurInfixOperator):
         return 'builtin${}({}, {})'.format(
-            c_argument.name,
-            generate_expression(c_argument.left),
-            generate_expression(c_argument.right),
+            expression.name,
+            generate_expression(expression.left),
+            generate_expression(expression.right),
         )
 
-    raise Exception('Could not handle expresssion "{}"'.format(c_argument))
+    raise Exception('Could not handle expresssion "{}"'.format(expression))
 
 def generate_negation_expression(c_negation_expression):
     return 'builtin$negate({})'.format(
@@ -82,14 +82,14 @@ def generate_statement(statement):
 
     return generate_expression_statement(statement)
 
-def generate(c_program):
+def generate(program):
     template = ENV.get_template('program.c')
     return template.render(
-        builtins=list(sorted(c_program.builtin_set)),
-        statements=[generate_statement(statement) for statement in c_program.statements],
-        standard_libraries=list(sorted(c_program.standard_libraries)),
-        string_literal_list=c_program.string_literal_list,
-        symbol_list=c_program.symbol_list,
+        builtins=list(sorted(program.builtin_set)),
+        statements=[generate_statement(statement) for statement in program.statements],
+        standard_libraries=list(sorted(program.standard_libraries)),
+        string_literal_list=program.string_literal_list,
+        symbol_list=program.symbol_list,
     )
 
 if __name__ == '__main__':

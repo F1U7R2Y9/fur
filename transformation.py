@@ -221,10 +221,15 @@ def transform_function_call_expression(accumulators, function_call):
 
     raise Exception()
 
+def transform_expression_statement(accumulators, statement):
+    return {
+        parsing.FurFunctionCallExpression: transform_function_call_expression,
+    }[type(statement.expression)](accumulators, statement.expression)
+
 def transform_statement(accumulators, statement):
     return {
         parsing.FurAssignmentStatement: transform_assignment_statement,
-        parsing.FurFunctionCallExpression: transform_function_call_expression,
+        parsing.FurExpressionStatement: transform_expression_statement,
     }[type(statement)](accumulators, statement)
 
 
@@ -244,19 +249,19 @@ def transform(program):
         string_literal_list=[],
     )
 
-    c_statements = [
+    statement_list = [
         transform_statement(accumulators, statement) for statement in program.statement_list
     ]
 
-    standard_libraries = set()
+    standard_library_set = set()
     for builtin in accumulators.builtin_set:
         for standard_library in BUILTINS[builtin]:
-            standard_libraries.add(standard_library)
+            standard_library_set.add(standard_library)
 
     return CProgram(
         builtin_set=accumulators.builtin_set,
-        statements=c_statements,
-        standard_libraries=standard_libraries,
+        statements=statement_list,
+        standard_libraries=standard_library_set,
         string_literal_list=accumulators.string_literal_list,
         symbol_list=accumulators.symbol_list,
     )
