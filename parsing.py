@@ -190,17 +190,17 @@ def _addition_level_expression_parser(index, tokens):
         'addition_level',
     )(index, tokens)
 
-def _equality_level_expression_parser(index, tokens):
+def _comparison_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
-        lambda token: token.type == 'equality_level_operator',
+        lambda token: token.type == 'comparison_level_operator',
         _addition_level_expression_parser,
-        'equality_level',
+        'comparison_level',
     )(index, tokens)
 
 def _and_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         lambda token: token.type == 'symbol' and token.match == 'and',
-        _equality_level_expression_parser,
+        _comparison_level_expression_parser,
         'and_level',
     )(index, tokens)
 

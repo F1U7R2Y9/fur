@@ -117,20 +117,12 @@ def normalize_basic_infix_operation(counter, expression):
 def normalize_infix_expression(counter, expression):
     # TODO Unfake this normalization
     return {
-        '+':    normalize_basic_infix_operation,
-        '-':    normalize_basic_infix_operation,
-        '*':    normalize_basic_infix_operation,
-        '//':   normalize_basic_infix_operation,
-        '%':    normalize_basic_infix_operation,
-        '==':   fake_normalization,
-        '<=':   fake_normalization,
-        '>=':   fake_normalization,
-        '!=':   fake_normalization,
-        '<':    fake_normalization,
-        '>':    fake_normalization,
-        'and':  fake_normalization,
-        'or':   fake_normalization,
-    }[expression.operator](counter, expression)
+        'multiplication_level': normalize_basic_infix_operation,
+        'addition_level': normalize_basic_infix_operation,
+        'comparison_level': fake_normalization,
+        'and_level': fake_normalization,
+        'or_level': fake_normalization,
+    }[expression.order](counter, expression)
 
 def normalize_expression(counter, expression):
     return {

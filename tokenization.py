@@ -39,7 +39,7 @@ _TOKEN_MATCHERS = [
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
-    ('equality_level_operator',         r'(<=|>=|==|!=|<|>)'),
+    ('comparison_level_operator',         r'(<=|>=|==|!=|<|>)'),
     ('assignment_operator',             r'='),
     ('addition_level_operator',         r'(\+|-)'),
     ('multiplication_level_operator',   r'(\*|//|%)'),
@@ -205,7 +205,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('=='),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='==',
                     index=0,
                     line=1,
@@ -216,7 +216,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('>='),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='>=',
                     index=0,
                     line=1,
@@ -227,7 +227,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('<='),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='<=',
                     index=0,
                     line=1,
@@ -238,7 +238,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('>'),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='>',
                     index=0,
                     line=1,
@@ -249,7 +249,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('<'),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='<',
                     index=0,
                     line=1,
@@ -260,7 +260,7 @@ if __name__ == '__main__':
             self.assertEqual(
                 tokenize('!='),
                 (Token(
-                    type='equality_level_operator',
+                    type='comparison_level_operator',
                     match='!=',
                     index=0,
                     line=1,

@@ -108,10 +108,10 @@ EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING = {
     '>':    'greaterThan',
 }
 
-def transform_equality_level_expression(accumulators, expression):
+def transform_comparison_level_expression(accumulators, expression):
     # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
-    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'equality_level':
-        left = transform_equality_level_expression(
+    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'comparison_level':
+        left = transform_comparison_level_expression(
             accumulators,
             expression.left
         )
@@ -151,8 +151,8 @@ def transform_variable_expression(accumulators, expression):
     return CVariableExpression(variable=expression.variable)
 
 def transform_infix_expression(accumulators, expression):
-    if expression.order == 'equality_level':
-        return transform_equality_level_expression(accumulators, expression)
+    if expression.order == 'comparison_level':
+        return transform_comparison_level_expression(accumulators, expression)
 
     INFIX_OPERATOR_TO_FUNCTION_NAME = {
         '+':    'add',
