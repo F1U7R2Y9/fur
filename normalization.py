@@ -115,8 +115,67 @@ def normalize_basic_infix_operation(counter, expression):
     )
 
 def normalize_comparison_expression(counter, expression):
-    # TODO Unfake this
-    return fake_normalization(counter, expression)
+    stack = []
+
+    while isinstance(expression.left, parsing.FurInfixExpression) and expression.order == 'comparison_level':
+        stack.append((expression.operator, expression.order, expression.right))
+        expression = expression.left
+
+    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
+    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
+
+    left_variable = '${}'.format(counter)
+    counter += 1
+    right_variable = '${}'.format(counter)
+    counter += 1
+
+    root_prestatements = (
+        NormalVariableAssignmentStatement(
+            variable=left_variable,
+            expression=left_expression,
+        ),
+        NormalVariableAssignmentStatement(
+            variable=right_variable,
+            expression=right_expression,
+        ),
+    )
+
+    counter, result_prestatements, result_expression = (
+        counter,
+        left_prestatements + right_prestatements + root_prestatements,
+        # TODO Implement short-circuiting
+        NormalInfixExpression(
+            order=expression.order, # TODO Do we need this?
+            operator=expression.operator,
+            left=NormalVariableExpression(variable=left_variable),
+            right=NormalVariableExpression(variable=right_variable),
+        ),
+    )
+
+    while len(stack) > 0:
+        right_operator, right_order, right_expression = stack.pop()
+        and_right_expression = parsing.FurInfixExpression(
+            operator=right_operator,
+            order=right_order,
+            left=NormalVariableExpression(variable=right_variable),
+            right=right_expression,
+        )
+
+        and_expression = parsing.FurInfixExpression(
+            operator='and',
+            order='and_level',
+            left=result_expression,
+            right=and_right_expression,
+        )
+
+        counter, and_prestatements, result_expression = normalize_boolean_expression(
+            counter,
+            and_expression,
+        )
+
+        result_prestatements = result_prestatements + and_prestatements
+
+    return (counter, result_prestatements, result_expression)
 
 def normalize_boolean_expression(counter, expression):
     # TODO Unfake this
