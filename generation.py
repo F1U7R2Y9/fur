@@ -12,17 +12,7 @@ def generate_integer_literal(c_integer_literal):
     return 'integerLiteral({})'.format(c_integer_literal.value)
 
 def generate_string_literal(c_string_literal):
-    def c_escape(ch):
-        return {
-            '\n': r'\n',
-            '"': r'\"',
-            '\\': r'\\',
-        }.get(ch, ch)
-
-    return 'stringLiteral("{}")'.format(
-        ''.join(c_escape(ch for ch in c_string_literal.value)),
-    )
-
+    return 'stringLiteral(STRING_LITERAL_LIST[{}])'.format(c_string_literal.index)
 
 CONSTANT_EXPRESSION_MAPPING = {
     'true':     'TRUE',
@@ -98,6 +88,7 @@ def generate(c_program):
         builtins=list(sorted(c_program.builtin_set)),
         statements=[generate_statement(statement) for statement in c_program.statements],
         standard_libraries=list(sorted(c_program.standard_libraries)),
+        string_literal_list=c_program.string_literal_list,
         symbol_list=c_program.symbol_list,
     )
 

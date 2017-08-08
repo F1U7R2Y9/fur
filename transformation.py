@@ -12,6 +12,7 @@ CIntegerLiteral = collections.namedtuple(
 CStringLiteral = collections.namedtuple(
     'CStringLiteral',
     [
+        'index',
         'value',
     ],
 )
@@ -70,6 +71,7 @@ CProgram = collections.namedtuple(
         'builtin_set',
         'statements',
         'standard_libraries',
+        'string_literal_list',
         'symbol_list',
     ],
 )
@@ -145,9 +147,19 @@ def transform_expression(accumulators, expression):
             symbol_list_index=accumulators.symbol_list.index(expression.value),
         )
 
+    if isinstance(expression, parsing.FurStringLiteralExpression):
+        value = expression.value
+
+        try:
+            index = accumulators.string_literal_list.index(value)
+        except ValueError:
+            index = len(accumulators.string_literal_list)
+            accumulators.string_literal_list.append(value)
+
+        return CStringLiteral(index=index, value=value)
+
     LITERAL_TYPE_MAPPING = {
         parsing.FurIntegerLiteralExpression: CIntegerLiteral,
-        parsing.FurStringLiteralExpression: CStringLiteral,
     }
 
     if type(expression) in LITERAL_TYPE_MAPPING:
@@ -221,13 +233,15 @@ Accumulators = collections.namedtuple(
     [
         'builtin_set',
         'symbol_list',
+        'string_literal_list',
     ],
 )
 
 def transform(program):
     accumulators = Accumulators(
         builtin_set=set(),
-        symbol_list = [],
+        symbol_list=[],
+        string_literal_list=[],
     )
 
     c_statements = [
@@ -243,6 +257,7 @@ def transform(program):
         builtin_set=accumulators.builtin_set,
         statements=c_statements,
         standard_libraries=standard_libraries,
+        string_literal_list=accumulators.string_literal_list,
         symbol_list=accumulators.symbol_list,
     )
 

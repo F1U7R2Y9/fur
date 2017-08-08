@@ -8,18 +8,20 @@
 #include <{{standard_library}}>
 {% endfor %}
 
-struct String;
-typedef struct String String;
 enum Type;
 typedef enum Type Type;
 union Instance;
 typedef union Instance Instance;
 struct Object;
 typedef struct Object Object;
-struct Runtime;
-typedef struct Runtime Runtime;
 
-const char * const SYMBOL_LIST[] = {
+const char* const STRING_LITERAL_LIST[] = {
+{% for string_literal in string_literal_list %}
+  "{{ string_literal }}",
+{% endfor %}
+};
+
+const char* const SYMBOL_LIST[] = {
 {% for symbol in symbol_list %}
   "{{ symbol }}",
 {% endfor %}
@@ -36,7 +38,7 @@ union Instance
 {
   bool boolean;
   int32_t integer;
-  char* string;
+  const char* string;
 };
 
 struct Object
@@ -84,8 +86,7 @@ void Environment_destruct(Environment* self)
   EnvironmentNode* next;
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
   {
-    // We don't need to destruct the permanent strings, because those will be destructed at the end when the Runtime is destructed
-    // The above comment represents all heap-allocated objects currently, so we don't need to destruct Objects (yet)
+    // No objects are allocated on the heap (yet!) so we don't need to free anything else
     next = node->next;
     free(node);
   }
@@ -105,7 +106,7 @@ Object Environment_get(Environment* self, const char* const symbol)
 {
   for(EnvironmentNode* node = self->root; node != NULL; node = node->next)
   {
-    // We can compare pointers because pointers are unique in the SYMBOLS_LIST
+    // We can compare pointers because pointers are unique in the SYMBOL_LIST
     if(node->key == symbol)
     {
       return node->value;
@@ -124,7 +125,7 @@ Object integerLiteral(int32_t literal)
   return result;
 }
 
-Object stringLiteral(char* literal)
+Object stringLiteral(const char* literal)
 {
   Object result;
   result.type = STRING;
