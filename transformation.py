@@ -81,10 +81,27 @@ CVariableInitializationStatement = collections.namedtuple(
     ],
 )
 
+CVariableReassignmentStatement = collections.namedtuple(
+    'CVariableReassignmentStatement',
+    [
+        'variable',
+        'expression',
+    ],
+)
+
 CExpressionStatement = collections.namedtuple(
     'CExpressionStatement',
     [
         'expression',
+    ],
+)
+
+CIfElseStatement = collections.namedtuple(
+    'CIfElseStatement',
+    [
+        'condition_expression',
+        'if_statements',
+        'else_statements',
     ],
 )
 
@@ -264,8 +281,21 @@ def transform_expression_statement(accumulators, statement):
         expression=expression,
     )
 
+def transform_if_else_statement(accumulators, statement):
+    return CIfElseStatement(
+        condition_expression=transform_expression(accumulators, statement.condition_expression),
+        if_statements=tuple(transform_statement(accumulators, s) for s in statement.if_statements),
+        else_statements=tuple(transform_statement(accumulators, s) for s in statement.else_statements),
+    )
+
 def transform_variable_initialization_statement(accumulators, statement):
     return CVariableInitializationStatement(
+        variable=statement.variable,
+        expression=transform_expression(accumulators, statement.expression),
+    )
+
+def transform_variable_reassignment_statement(accumulators, statement):
+    return CVariableReassignmentStatement(
         variable=statement.variable,
         expression=transform_expression(accumulators, statement.expression),
     )
@@ -274,8 +304,10 @@ def transform_statement(accumulators, statement):
     return {
         parsing.FurAssignmentStatement: transform_symbol_assignment_statement,
         parsing.FurExpressionStatement: transform_expression_statement,
-        normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalExpressionStatement: transform_expression_statement,
+        normalization.NormalIfElseStatement: transform_if_else_statement,
+        normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
+        normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)
 
 

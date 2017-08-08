@@ -87,11 +87,31 @@ def generate_variable_initialization_statement(statement):
         generate_expression(statement.expression),
     )
 
+def generate_variable_reassignment_statement(statement):
+    return '{} = {};'.format(
+        statement.variable,
+        generate_expression(statement.expression),
+    )
+
+
+def indent(s):
+    return '\n'.join(' ' * 2 + l for l in s.split('\n'))
+
+def generate_if_else_statement(statement):
+    # TODO Check that the argument is boolean
+    return 'if({}.instance.boolean)\n{{\n{}\n}}\nelse\n{{\n{}\n}}'.format(
+        generate_expression(statement.condition_expression),
+        indent('\n'.join(generate_statement(s) for s in statement.if_statements)),
+        indent('\n'.join(generate_statement(s) for s in statement.else_statements)),
+    )
+
 def generate_statement(statement):
     return {
-        transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CExpressionStatement: generate_expression_statement,
+        transformation.CIfElseStatement: generate_if_else_statement,
+        transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
+        transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)
 
 def generate(program):

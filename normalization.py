@@ -35,10 +35,27 @@ NormalVariableInitializationStatement = collections.namedtuple(
     ],
 )
 
+NormalVariableReassignmentStatement = collections.namedtuple(
+    'NormalVariableReassignmentStatement',
+    [
+        'variable',
+        'expression',
+    ],
+)
+
 NormalExpressionStatement = collections.namedtuple(
     'NormalExpressionStatement',
     [
         'expression',
+    ],
+)
+
+NormalIfElseStatement = collections.namedtuple(
+    'NormalIfElseStatement',
+    [
+        'condition_expression',
+        'if_statements',
+        'else_statements',
     ],
 )
 
@@ -178,8 +195,39 @@ def normalize_comparison_expression(counter, expression):
     return (counter, result_prestatements, result_expression)
 
 def normalize_boolean_expression(counter, expression):
-    # TODO Unfake this
-    return fake_normalization(counter, expression)
+    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
+    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
+
+    result_variable = '${}'.format(counter)
+    if_else_prestatment = NormalVariableInitializationStatement(variable=result_variable, expression=left_expression)
+    counter += 1
+
+    condition_expression=NormalVariableExpression(variable=result_variable)
+    short_circuited_statements = right_prestatements + (NormalVariableReassignmentStatement(variable=result_variable, expression=right_expression),)
+
+    if expression.operator == 'and':
+        if_else_statement = NormalIfElseStatement(
+            condition_expression=condition_expression,
+            if_statements=short_circuited_statements,
+            else_statements=(),
+        )
+
+    elif expression.operator == 'or':
+        if_else_statement = NormalIfElseStatement(
+            condition_expression=condition_expression,
+            if_statements=(),
+            else_statements=short_circuited_statements,
+        )
+
+    else:
+        raise Exception('Unable to handle operator "{}"'.format(expression.operator))
+
+    return (
+        counter,
+        left_prestatements + (if_else_prestatment, if_else_statement),
+        NormalVariableExpression(variable=result_variable),
+    )
+
 
 def normalize_infix_expression(counter, expression):
     return {
@@ -192,6 +240,8 @@ def normalize_infix_expression(counter, expression):
 
 def normalize_expression(counter, expression):
     return {
+        NormalInfixExpression: fake_normalization,
+        NormalVariableExpression: fake_normalization,
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: fake_normalization,
