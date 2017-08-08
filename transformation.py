@@ -60,7 +60,8 @@ CFunctionCallExpression = collections.namedtuple(
     'CFunctionCallExpression',
     [
         'name',
-        'arguments',
+        'argument_count',
+        'argument_items',
     ],
 )
 
@@ -70,6 +71,14 @@ CSymbolAssignmentStatement = collections.namedtuple(
         'target',
         'target_symbol_list_index',
         'expression',
+    ],
+)
+
+CArrayVariableInitializationStatement = collections.namedtuple(
+    'CArrayVariableInitializationStatement',
+    [
+        'variable',
+        'items',
     ],
 )
 
@@ -257,17 +266,14 @@ def transform_negation_expression(accumulators, expression):
     )
 
 def transform_function_call_expression(accumulators, function_call):
-    # TODO Function should be a full expression
     if function_call.function.value in BUILTINS.keys():
         # TODO Check that the builtin is actually callable
         accumulators.builtin_set.add(function_call.function.value)
 
         return CFunctionCallExpression(
             name='builtin$' + function_call.function.value,
-            arguments=tuple(
-                transform_expression(accumulators, arg)
-                for arg in function_call.arguments
-            ),
+            argument_count=function_call.argument_count,
+            argument_items=transform_expression(accumulators, function_call.argument_items),
         )
 
     raise Exception()
@@ -289,6 +295,12 @@ def transform_if_else_statement(accumulators, statement):
         else_statements=tuple(transform_statement(accumulators, s) for s in statement.else_statements),
     )
 
+def transform_array_variable_initialization_statement(accumulators, statement):
+    return CArrayVariableInitializationStatement(
+        variable=statement.variable,
+        items=tuple(transform_expression(accumulators, i) for i in statement.items),
+    )
+
 def transform_variable_initialization_statement(accumulators, statement):
     return CVariableInitializationStatement(
         variable=statement.variable,
@@ -307,6 +319,7 @@ def transform_statement(accumulators, statement):
         parsing.FurExpressionStatement: transform_expression_statement,
         normalization.NormalExpressionStatement: transform_expression_statement,
         normalization.NormalIfElseStatement: transform_if_else_statement,
+        normalization.NormalArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
         normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)

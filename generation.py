@@ -64,10 +64,12 @@ def generate_negation_expression(c_negation_expression):
         generate_expression(c_negation_expression.value)
     )
 
-def generate_function_call(c_function_call):
-    return '{}({})'.format(
-        c_function_call.name,
-        ', '.join(generate_expression(argument) for argument in c_function_call.arguments),
+def generate_function_call(function_call):
+    return '{}({}, {})'.format(
+        function_call.name,
+        function_call.argument_count,
+        # TODO This is just a single item containing a reference to the items list--make that clearer
+        generate_expression(function_call.argument_items),
     )
 
 def generate_expression_statement(statement):
@@ -79,6 +81,12 @@ def generate_symbol_assignment_statement(c_assignment_statement):
         c_assignment_statement.target_symbol_list_index,
         c_assignment_statement.target,
         generate_expression(c_assignment_statement.expression),
+    )
+
+def generate_array_variable_initialization_statement(statement):
+    return 'Object {}[] = {{ {} }};'.format(
+        statement.variable,
+        ', '.join(generate_expression(i) for i in statement.items),
     )
 
 def generate_variable_initialization_statement(statement):
@@ -110,6 +118,7 @@ def generate_statement(statement):
         transformation.CExpressionStatement: generate_expression_statement,
         transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
+        transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
         transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)

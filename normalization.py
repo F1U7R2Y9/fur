@@ -30,7 +30,16 @@ NormalFunctionCallExpression = collections.namedtuple(
     'NormalFunctionCallExpression',
     [
         'function',
-        'arguments',
+        'argument_count',
+        'argument_items',
+    ],
+)
+
+NormalArrayVariableInitializationStatement = collections.namedtuple(
+    'NormalArrayVariableInitializationStatement',
+    [
+        'variable',
+        'items',
     ],
 )
 
@@ -98,12 +107,21 @@ def normalize_function_call_expression(counter, expression):
         ))
         counter += 1
 
+    arguments_variable = '${}'.format(counter)
+    counter += 1
+
+    prestatements.append(NormalArrayVariableInitializationStatement(
+        variable=arguments_variable,
+        items=tuple(arguments),
+    ))
+
     return (
         counter,
         tuple(prestatements),
         NormalFunctionCallExpression(
-            expression.function, # TODO Normalize the function
-            arguments=tuple(arguments),
+            function=expression.function, # TODO Normalize the function
+            argument_count=len(arguments),
+            argument_items=NormalVariableExpression(variable=arguments_variable),
         ),
     )
 

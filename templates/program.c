@@ -272,8 +272,13 @@ Object builtin$or(Object left, Object right)
 }
 
 {% if 'pow' in builtins %}
-Object builtin$pow(Object base, Object exponent)
+Object builtin$pow(size_t argc, Object args[])
 {
+  assert(argc == 2);
+
+  Object base = args[0];
+  Object exponent = args[1];
+
   assert(base.type == INTEGER);
   assert(exponent.type == INTEGER);
 
@@ -285,25 +290,29 @@ Object builtin$pow(Object base, Object exponent)
 {% endif %}
 
 {% if 'print' in builtins %}
-void builtin$print(Object output)
+void builtin$print(size_t argc, Object args[])
 {
-  switch(output.type)
+  for(size_t i = 0; i < argc; i++)
   {
-    case BOOLEAN:
-      fputs(output.instance.boolean ? "true" : "false", stdout);
-      break;
+    Object output = args[i];
+    switch(output.type)
+    {
+      case BOOLEAN:
+        fputs(output.instance.boolean ? "true" : "false", stdout);
+        break;
 
-    case INTEGER:
-      printf("%" PRId32, output.instance.integer);
-      break;
+      case INTEGER:
+        printf("%" PRId32, output.instance.integer);
+        break;
 
-    case STRING:
-      // Using fwrite instead of printf to handle size_t length
-      printf("%s", output.instance.string);
-      break;
+      case STRING:
+        // Using fwrite instead of printf to handle size_t length
+        printf("%s", output.instance.string);
+        break;
 
-    default:
-      assert(false);
+      default:
+        assert(false);
+    }
   }
 }
 {% endif %}
