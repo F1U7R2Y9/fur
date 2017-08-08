@@ -67,7 +67,7 @@ CAssignmentStatement = collections.namedtuple(
 CProgram = collections.namedtuple(
     'CProgram',
     [
-        'builtins',
+        'builtin_set',
         'statements',
         'standard_libraries',
         'symbol_list',
@@ -197,7 +197,7 @@ def transform_negation_expression(accumulators, negation_expression):
 def transform_function_call_expression(accumulators, function_call):
     if function_call.function.value in BUILTINS.keys():
         # TODO Check that the builtin is actually callable
-        accumulators.builtins.add(function_call.function.value)
+        accumulators.builtin_set.add(function_call.function.value)
 
         return CFunctionCallExpression(
             name='builtin$' + function_call.function.value,
@@ -219,14 +219,14 @@ def transform_statement(accumulators, statement):
 Accumulators = collections.namedtuple(
     'Accumulators',
     [
-        'builtins',
+        'builtin_set',
         'symbol_list',
     ],
 )
 
 def transform(program):
     accumulators = Accumulators(
-        builtins=set(),
+        builtin_set=set(),
         symbol_list = [],
     )
 
@@ -235,12 +235,12 @@ def transform(program):
     ]
 
     standard_libraries = set()
-    for builtin in accumulators.builtins:
+    for builtin in accumulators.builtin_set:
         for standard_library in BUILTINS[builtin]:
             standard_libraries.add(standard_library)
 
     return CProgram(
-        builtins=accumulators.builtins,
+        builtin_set=accumulators.builtin_set,
         statements=c_statements,
         standard_libraries=standard_libraries,
         symbol_list=accumulators.symbol_list,

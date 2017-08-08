@@ -95,7 +95,7 @@ def generate_statement(statement):
 def generate(c_program):
     template = ENV.get_template('program.c')
     return template.render(
-        builtins=list(sorted(c_program.builtins)),
+        builtins=list(sorted(c_program.builtin_set)),
         statements=[generate_statement(statement) for statement in c_program.statements],
         standard_libraries=list(sorted(c_program.standard_libraries)),
         symbol_list=c_program.symbol_list,
