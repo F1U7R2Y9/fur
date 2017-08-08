@@ -19,7 +19,7 @@ def generate_string_literal(c_string_literal):
             '\\': r'\\',
         }.get(ch, ch)
 
-    return 'stringLiteral(runtime, "{}")'.format(
+    return 'stringLiteral("{}")'.format(
         ''.join(c_escape(ch for ch in c_string_literal.value)),
     )
 

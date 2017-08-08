@@ -116,55 +116,6 @@ Object Environment_get(Environment* self, const char* const symbol)
   assert(false);
 }
 
-
-struct Runtime
-{
-  size_t permanentStringsLength;
-  size_t permanentStringsAllocated;
-  char** permanentStrings;
-};
-
-Runtime* Runtime_construct()
-{
-  Runtime* result = malloc(sizeof(Runtime));
-  result->permanentStringsLength = 0;
-  result->permanentStringsAllocated = 0;
-  result->permanentStrings = NULL;
-  return result;
-}
-
-void Runtime_destruct(Runtime* self)
-{
-  free(self->permanentStrings);
-  free(self);
-}
-
-void Runtime_addPermanentString(Runtime* self, char* const string)
-{
-  // TODO Make this function thread-safe
-  if(self->permanentStringsLength == self->permanentStringsAllocated)
-  {
-    if(self->permanentStringsAllocated == 0)
-    {
-      self->permanentStringsAllocated = 8;
-    }
-    else
-    {
-      self->permanentStringsAllocated = self->permanentStringsAllocated * 2;
-    }
-
-    self->permanentStrings = realloc(
-      self->permanentStrings,
-      sizeof(char* const) * self->permanentStringsAllocated
-    );
-
-    // TODO Handle realloc returning NULL
-  }
-
-  self->permanentStrings[self->permanentStringsLength] = string;
-  self->permanentStringsLength++;
-}
-
 Object integerLiteral(int32_t literal)
 {
   Object result;
@@ -173,10 +124,8 @@ Object integerLiteral(int32_t literal)
   return result;
 }
 
-Object stringLiteral(Runtime* runtime, char* literal)
+Object stringLiteral(char* literal)
 {
-  Runtime_addPermanentString(runtime, literal);
-
   Object result;
   result.type = STRING;
   result.instance.string = literal;
@@ -360,7 +309,6 @@ void builtin$print(Object output)
 
 int main(int argc, char** argv)
 {
-  Runtime* runtime = Runtime_construct();
   Environment* environment = Environment_construct();
 
   {% for statement in statements %}
@@ -368,7 +316,6 @@ int main(int argc, char** argv)
   {% endfor %}
 
   Environment_destruct(environment);
-  Runtime_destruct(runtime);
 
   return 0;
 }
