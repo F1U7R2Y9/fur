@@ -39,6 +39,9 @@ NormalProgram = collections.namedtuple(
     ],
 )
 
+def fake_normalization(counter, thing):
+    return (counter, (), thing)
+
 def normalize_function_call_expression(counter, expression):
     prestatements = []
     arguments = []
@@ -63,19 +66,22 @@ def normalize_function_call_expression(counter, expression):
         ),
     )
 
+def normalize_expression_statement(counter, statement):
+    counter, prestatements, normalized = {
+        parsing.FurFunctionCallExpression: normalize_function_call_expression,
+    }[type(statement.expression)](counter, statement.expression)
+
+    return (
+        counter,
+        prestatements,
+        NormalExpressionStatement(expression=normalized),
+    )
+
 def normalize_statement(counter, statement):
-    if isinstance(statement, parsing.FurExpressionStatement):
-        counter, prestatements, normalized = {
-            parsing.FurFunctionCallExpression: normalize_function_call_expression,
-        }[type(statement.expression)](counter, statement.expression)
-
-        return (
-            counter,
-            prestatements,
-            NormalExpressionStatement(expression=normalized),
-        )
-
-    return (counter, (), statement)
+    return {
+        parsing.FurExpressionStatement: normalize_expression_statement,
+        parsing.FurAssignmentStatement: fake_normalization,
+    }[type(statement)](counter, statement)
 
 def normalize(program):
     counter = 0
