@@ -19,12 +19,6 @@ typedef struct Object Object;
 struct Runtime;
 typedef struct Runtime Runtime;
 
-struct String
-{
-  size_t length;
-  char* characters;
-};
-
 const char * const SYMBOL_LIST[] = {
 {% for symbol in symbol_list %}
   "{{ symbol }}",
@@ -42,7 +36,7 @@ union Instance
 {
   bool boolean;
   int32_t integer;
-  String* string;
+  char* string;
 };
 
 struct Object
@@ -127,7 +121,7 @@ struct Runtime
 {
   size_t permanentStringsLength;
   size_t permanentStringsAllocated;
-  String** permanentStrings;
+  char** permanentStrings;
 };
 
 Runtime* Runtime_construct()
@@ -141,16 +135,11 @@ Runtime* Runtime_construct()
 
 void Runtime_destruct(Runtime* self)
 {
-  for(size_t i = 0; i < self->permanentStringsLength; i++)
-  {
-    free(self->permanentStrings[i]);
-  }
-
   free(self->permanentStrings);
   free(self);
 }
 
-void Runtime_addPermanentString(Runtime* self, String* string)
+void Runtime_addPermanentString(Runtime* self, char* const string)
 {
   // TODO Make this function thread-safe
   if(self->permanentStringsLength == self->permanentStringsAllocated)
@@ -166,7 +155,7 @@ void Runtime_addPermanentString(Runtime* self, String* string)
 
     self->permanentStrings = realloc(
       self->permanentStrings,
-      sizeof(String*) * self->permanentStringsAllocated
+      sizeof(char* const) * self->permanentStringsAllocated
     );
 
     // TODO Handle realloc returning NULL
@@ -184,17 +173,13 @@ Object integerLiteral(int32_t literal)
   return result;
 }
 
-Object stringLiteral(Runtime* runtime, const char* literal)
+Object stringLiteral(Runtime* runtime, char* literal)
 {
-  String* resultString = malloc(sizeof(String));
-  resultString->length = strlen(literal);
-  resultString->characters = malloc(resultString->length);
-  memcpy(resultString->characters, literal, resultString->length);
-  Runtime_addPermanentString(runtime, resultString);
+  Runtime_addPermanentString(runtime, literal);
 
   Object result;
   result.type = STRING;
-  result.instance.string = resultString;
+  result.instance.string = literal;
   return result;
 }
 
@@ -364,7 +349,7 @@ void builtin$print(Object output)
 
     case STRING:
       // Using fwrite instead of printf to handle size_t length
-      fwrite(output.instance.string->characters, 1, output.instance.string->length, stdout);
+      printf("%s", output.instance.string);
       break;
 
     default:
