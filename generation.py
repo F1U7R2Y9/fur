@@ -81,7 +81,7 @@ def generate_symbol_assignment_statement(c_assignment_statement):
         generate_expression(c_assignment_statement.expression),
     )
 
-def generate_variable_assignment_statement(statement):
+def generate_variable_initialization_statement(statement):
     return 'Object {} = {};'.format(
         statement.variable,
         generate_expression(statement.expression),
@@ -91,7 +91,7 @@ def generate_statement(statement):
     return {
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CExpressionStatement: generate_expression_statement,
-        transformation.CVariableAssignmentStatement: generate_variable_assignment_statement,
+        transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
     }[type(statement)](statement)
 
 def generate(program):

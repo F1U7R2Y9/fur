@@ -27,8 +27,8 @@ NormalFunctionCallExpression = collections.namedtuple(
     ],
 )
 
-NormalVariableAssignmentStatement = collections.namedtuple(
-    'NormalVariableAssignmentStatement',
+NormalVariableInitializationStatement = collections.namedtuple(
+    'NormalVariableInitializationStatement',
     [
         'variable',
         'expression',
@@ -65,7 +65,7 @@ def normalize_function_call_expression(counter, expression):
             prestatements.append(s)
 
         variable = '${}'.format(counter)
-        prestatements.append(NormalVariableAssignmentStatement(
+        prestatements.append(NormalVariableInitializationStatement(
             variable=variable,
             expression=normalized_argument,
         ))
@@ -93,11 +93,11 @@ def normalize_basic_infix_operation(counter, expression):
     counter += 1
 
     root_prestatements = (
-        NormalVariableAssignmentStatement(
+        NormalVariableInitializationStatement(
             variable=left_variable,
             expression=left_expression,
         ),
-        NormalVariableAssignmentStatement(
+        NormalVariableInitializationStatement(
             variable=right_variable,
             expression=right_expression,
         ),
@@ -130,11 +130,11 @@ def normalize_comparison_expression(counter, expression):
     counter += 1
 
     root_prestatements = (
-        NormalVariableAssignmentStatement(
+        NormalVariableInitializationStatement(
             variable=left_variable,
             expression=left_expression,
         ),
-        NormalVariableAssignmentStatement(
+        NormalVariableInitializationStatement(
             variable=right_variable,
             expression=right_expression,
         ),

@@ -73,8 +73,8 @@ CSymbolAssignmentStatement = collections.namedtuple(
     ],
 )
 
-CVariableAssignmentStatement = collections.namedtuple(
-    'CVariableAssignmentStatement',
+CVariableInitializationStatement = collections.namedtuple(
+    'CVariableInitializationStatement',
     [
         'variable',
         'expression',
@@ -264,8 +264,8 @@ def transform_expression_statement(accumulators, statement):
         expression=expression,
     )
 
-def transform_variable_assignment_statement(accumulators, statement):
-    return CVariableAssignmentStatement(
+def transform_variable_initialization_statement(accumulators, statement):
+    return CVariableInitializationStatement(
         variable=statement.variable,
         expression=transform_expression(accumulators, statement.expression),
     )
@@ -274,7 +274,7 @@ def transform_statement(accumulators, statement):
     return {
         parsing.FurAssignmentStatement: transform_symbol_assignment_statement,
         parsing.FurExpressionStatement: transform_expression_statement,
-        normalization.NormalVariableAssignmentStatement: transform_variable_assignment_statement,
+        normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalExpressionStatement: transform_expression_statement,
     }[type(statement)](accumulators, statement)
 
