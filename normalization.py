@@ -9,11 +9,13 @@ NormalVariableExpression = collections.namedtuple(
     ],
 )
 
-NormalVariableAssignmentStatement = collections.namedtuple(
-    'NormalVariableAssignmentStatement',
+NormalInfixExpression = collections.namedtuple(
+    'NormalInfixExpression',
     [
-        'variable',
-        'expression',
+        'order',
+        'operator',
+        'left',
+        'right',
     ],
 )
 
@@ -22,6 +24,14 @@ NormalFunctionCallExpression = collections.namedtuple(
     [
         'function',
         'arguments',
+    ],
+)
+
+NormalVariableAssignmentStatement = collections.namedtuple(
+    'NormalVariableAssignmentStatement',
+    [
+        'variable',
+        'expression',
     ],
 )
 
@@ -73,12 +83,62 @@ def normalize_function_call_expression(counter, expression):
         ),
     )
 
+def normalize_basic_infix_operation(counter, expression):
+    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
+    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
+
+    left_variable = '${}'.format(counter)
+    counter += 1
+    right_variable = '${}'.format(counter)
+    counter += 1
+
+    root_prestatements = (
+        NormalVariableAssignmentStatement(
+            variable=left_variable,
+            expression=left_expression,
+        ),
+        NormalVariableAssignmentStatement(
+            variable=right_variable,
+            expression=right_expression,
+        ),
+    )
+
+    return (
+        counter,
+        left_prestatements + right_prestatements + root_prestatements,
+        NormalInfixExpression(
+            order=expression.order, # TODO Do we need this?
+            operator=expression.operator,
+            left=NormalVariableExpression(variable=left_variable),
+            right=NormalVariableExpression(variable=right_variable),
+        ),
+    )
+
+def normalize_infix_expression(counter, expression):
+    # TODO Unfake this normalization
+    return {
+        '+':    normalize_basic_infix_operation,
+        '-':    normalize_basic_infix_operation,
+        '*':    normalize_basic_infix_operation,
+        '//':   normalize_basic_infix_operation,
+        '%':    normalize_basic_infix_operation,
+        '==':   fake_normalization,
+        '<=':   fake_normalization,
+        '>=':   fake_normalization,
+        '!=':   fake_normalization,
+        '<':    fake_normalization,
+        '>':    fake_normalization,
+        'and':  fake_normalization,
+        'or':   fake_normalization,
+    }[expression.operator](counter, expression)
+
 def normalize_expression(counter, expression):
     return {
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
-        parsing.FurInfixExpression: fake_normalization, # TODO This should not be faked
+        parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: fake_normalization,
-        parsing.FurNegationExpression: fake_normalization,
+        parsing.FurNegationExpression: fake_normalization, # TODO Don't fake this
+        parsing.FurParenthesizedExpression: fake_normalization, # TODO Don't fake this
         parsing.FurStringLiteralExpression: fake_normalization,
         parsing.FurSymbolExpression: fake_normalization,
     }[type(expression)](counter, expression)

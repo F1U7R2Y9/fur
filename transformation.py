@@ -150,6 +150,26 @@ BUILTINS = {
 def transform_variable_expression(accumulators, expression):
     return CVariableExpression(variable=expression.variable)
 
+def transform_infix_expression(accumulators, expression):
+    if expression.order == 'equality_level':
+        return transform_equality_level_expression(accumulators, expression)
+
+    INFIX_OPERATOR_TO_FUNCTION_NAME = {
+        '+':    'add',
+        '-':    'subtract',
+        '*':    'multiply',
+        '//':   'integerDivide',
+        '%':    'modularDivide',
+        'and':  'and',
+        'or':   'or',
+    }
+
+    return CFunctionCallForFurInfixOperator(
+        name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
+        left=transform_expression(accumulators, expression.left),
+        right=transform_expression(accumulators, expression.right),
+    )
+
 def transform_expression(accumulators, expression):
     if isinstance(expression, parsing.FurParenthesizedExpression):
         # Parentheses can be removed because everything in the C output is explicitly parenthesized
@@ -191,30 +211,12 @@ def transform_expression(accumulators, expression):
     if type(expression) in LITERAL_TYPE_MAPPING:
         return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
 
-    if isinstance(expression, parsing.FurInfixExpression):
-        if expression.order == 'equality_level':
-            return transform_equality_level_expression(accumulators, expression)
-
-        INFIX_OPERATOR_TO_FUNCTION_NAME = {
-            '+':    'add',
-            '-':    'subtract',
-            '*':    'multiply',
-            '//':   'integerDivide',
-            '%':    'modularDivide',
-            'and':  'and',
-            'or':   'or',
-        }
-
-        return CFunctionCallForFurInfixOperator(
-            name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
-            left=transform_expression(accumulators, expression.left),
-            right=transform_expression(accumulators, expression.right),
-        )
-
     # TODO Handle all possible types in this form
     return {
-        normalization.NormalVariableExpression: transform_variable_expression,
+        parsing.FurInfixExpression: transform_infix_expression, # TODO Shouldn't need this
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
+        normalization.NormalInfixExpression: transform_infix_expression,
+        normalization.NormalVariableExpression: transform_variable_expression,
     }[type(expression)](accumulators, expression)
 
 def transform_symbol_assignment_statement(accumulators, assignment_statement):
