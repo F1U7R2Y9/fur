@@ -214,6 +214,7 @@ def transform_expression(accumulators, expression):
     # TODO Handle all possible types in this form
     return {
         normalization.NormalVariableExpression: transform_variable_expression,
+        normalization.NormalFunctionCallExpression: transform_function_call_expression,
     }[type(expression)](accumulators, expression)
 
 def transform_symbol_assignment_statement(accumulators, assignment_statement):
@@ -236,6 +237,7 @@ def transform_negation_expression(accumulators, negation_expression):
     )
 
 def transform_function_call_expression(accumulators, function_call):
+    # TODO Function should be a full expression
     if function_call.function.value in BUILTINS.keys():
         # TODO Check that the builtin is actually callable
         accumulators.builtin_set.add(function_call.function.value)
