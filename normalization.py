@@ -114,14 +114,21 @@ def normalize_basic_infix_operation(counter, expression):
         ),
     )
 
+def normalize_comparison_expression(counter, expression):
+    # TODO Unfake this
+    return fake_normalization(counter, expression)
+
+def normalize_boolean_expression(counter, expression):
+    # TODO Unfake this
+    return fake_normalization(counter, expression)
+
 def normalize_infix_expression(counter, expression):
-    # TODO Unfake this normalization
     return {
         'multiplication_level': normalize_basic_infix_operation,
         'addition_level': normalize_basic_infix_operation,
-        'comparison_level': fake_normalization,
-        'and_level': fake_normalization,
-        'or_level': fake_normalization,
+        'comparison_level': normalize_comparison_expression,
+        'and_level': normalize_boolean_expression,
+        'or_level': normalize_boolean_expression,
     }[expression.order](counter, expression)
 
 def normalize_expression(counter, expression):
