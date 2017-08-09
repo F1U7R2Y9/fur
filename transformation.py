@@ -270,8 +270,9 @@ def transform_function_call_expression(accumulators, function_call):
         # TODO Check that the builtin is actually callable
         accumulators.builtin_set.add(function_call.function.value)
 
+        # TODO Use the symbol from SYMBOL LIST
         return CFunctionCallExpression(
-            name='builtin${}.instance.closure'.format(function_call.function.value),
+            name=function_call.function.value,
             argument_count=function_call.argument_count,
             argument_items=transform_expression(accumulators, function_call.argument_items),
         )

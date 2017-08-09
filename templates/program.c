@@ -330,6 +330,11 @@ int main(int argc, char** argv)
 {
   Environment* environment = Environment_construct();
 
+  // TODO Use the symbol from SYMBOL_LIST
+  {% for builtin in builtins %}
+  Environment_set(environment, "{{ builtin }}", builtin${{ builtin }});
+  {% endfor %}
+
   {% for statement in statements %}
   {{ statement }}
   {% endfor %}
