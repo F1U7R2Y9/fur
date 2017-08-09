@@ -30,6 +30,7 @@ const char* const SYMBOL_LIST[] = {
 enum Type
 {
   BOOLEAN,
+  CLOSURE,
   INTEGER,
   STRING
 };
@@ -37,6 +38,7 @@ enum Type
 union Instance
 {
   bool boolean;
+  Object (*closure)(size_t, Object*);
   int32_t integer;
   const char* string;
 };
@@ -134,7 +136,7 @@ Object stringLiteral(const char* literal)
 }
 
 // TODO Make this conditionally added
-Object builtin$negate(Object input)
+Object operator$negate(Object input)
 {
   assert(input.type == INTEGER);
 
@@ -144,7 +146,7 @@ Object builtin$negate(Object input)
   return result;
 }
 
-Object builtin$add(Object left, Object right)
+Object operator$add(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -155,7 +157,7 @@ Object builtin$add(Object left, Object right)
   return result;
 }
 
-Object builtin$subtract(Object left, Object right)
+Object operator$subtract(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -166,7 +168,7 @@ Object builtin$subtract(Object left, Object right)
   return result;
 }
 
-Object builtin$multiply(Object left, Object right)
+Object operator$multiply(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -177,7 +179,7 @@ Object builtin$multiply(Object left, Object right)
   return result;
 }
 
-Object builtin$integerDivide(Object left, Object right)
+Object operator$integerDivide(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -188,7 +190,7 @@ Object builtin$integerDivide(Object left, Object right)
   return result;
 }
 
-Object builtin$modularDivide(Object left, Object right)
+Object operator$modularDivide(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -199,7 +201,7 @@ Object builtin$modularDivide(Object left, Object right)
   return result;
 }
 
-Object builtin$equals(Object left, Object right)
+Object operator$equals(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -208,7 +210,7 @@ Object builtin$equals(Object left, Object right)
   return result;
 }
 
-Object builtin$notEquals(Object left, Object right)
+Object operator$notEquals(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -217,7 +219,7 @@ Object builtin$notEquals(Object left, Object right)
   return result;
 }
 
-Object builtin$greaterThan(Object left, Object right)
+Object operator$greaterThan(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -226,7 +228,7 @@ Object builtin$greaterThan(Object left, Object right)
   return result;
 }
 
-Object builtin$lessThan(Object left, Object right)
+Object operator$lessThan(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -235,7 +237,7 @@ Object builtin$lessThan(Object left, Object right)
   return result;
 }
 
-Object builtin$greaterThanOrEqual(Object left, Object right)
+Object operator$greaterThanOrEqual(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -244,7 +246,7 @@ Object builtin$greaterThanOrEqual(Object left, Object right)
   return result;
 }
 
-Object builtin$lessThanOrEqual(Object left, Object right)
+Object operator$lessThanOrEqual(Object left, Object right)
 {
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
@@ -253,7 +255,7 @@ Object builtin$lessThanOrEqual(Object left, Object right)
   return result;
 }
 
-Object builtin$and(Object left, Object right)
+Object operator$and(Object left, Object right)
 {
   assert(left.type == BOOLEAN);
   assert(right.type == BOOLEAN);
@@ -262,7 +264,7 @@ Object builtin$and(Object left, Object right)
   return result;
 }
 
-Object builtin$or(Object left, Object right)
+Object operator$or(Object left, Object right)
 {
   assert(left.type == BOOLEAN);
   assert(right.type == BOOLEAN);
@@ -272,7 +274,7 @@ Object builtin$or(Object left, Object right)
 }
 
 {% if 'pow' in builtins %}
-Object builtin$pow(size_t argc, Object args[])
+Object builtin$pow$implementation(size_t argc, Object* args)
 {
   assert(argc == 2);
 
@@ -287,10 +289,12 @@ Object builtin$pow(size_t argc, Object args[])
   result.instance.integer = pow(base.instance.integer, exponent.instance.integer);
   return result;
 }
+
+Object builtin$pow = { CLOSURE, (Instance)builtin$pow$implementation };
 {% endif %}
 
 {% if 'print' in builtins %}
-void builtin$print(size_t argc, Object args[])
+Object builtin$print$implementation(size_t argc, Object* args)
 {
   for(size_t i = 0; i < argc; i++)
   {
@@ -314,7 +318,12 @@ void builtin$print(size_t argc, Object args[])
         assert(false);
     }
   }
+
+  // TODO Return something better
+  return FALSE;
 }
+
+Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% endif %}
 
 int main(int argc, char** argv)

@@ -49,7 +49,7 @@ def generate_expression(expression):
         return LITERAL_TYPE_MAPPING[type(expression)](expression)
 
     if isinstance(expression, transformation.CFunctionCallForFurInfixOperator):
-        return 'builtin${}({}, {})'.format(
+        return 'operator${}({}, {})'.format(
             expression.name,
             generate_expression(expression.left),
             generate_expression(expression.right),
@@ -60,7 +60,7 @@ def generate_expression(expression):
     }[type(expression)](expression)
 
 def generate_negation_expression(c_negation_expression):
-    return 'builtin$negate({})'.format(
+    return 'operator$negate({})'.format(
         generate_expression(c_negation_expression.value)
     )
 

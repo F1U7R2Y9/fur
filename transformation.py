@@ -271,7 +271,7 @@ def transform_function_call_expression(accumulators, function_call):
         accumulators.builtin_set.add(function_call.function.value)
 
         return CFunctionCallExpression(
-            name='builtin$' + function_call.function.value,
+            name='builtin${}.instance.closure'.format(function_call.function.value),
             argument_count=function_call.argument_count,
             argument_items=transform_expression(accumulators, function_call.argument_items),
         )
