@@ -72,24 +72,34 @@ struct EnvironmentNode
 
 struct Environment
 {
+  size_t referenceCount;
   Environment* parent;
   EnvironmentNode* root;
 };
 
-void Environment_initialize(Environment* self, Environment* parent)
+Environment* Environment_construct(Environment* parent)
 {
-  self->parent = parent;
-  self->root = NULL;
+  Environment* result = malloc(sizeof(Environment));
+  result->referenceCount = 1;
+  result->parent = parent;
+  result->root = NULL;
+  return result;
 }
 
-void Environment_deinitialize(Environment* self)
+void Environment_destruct(Environment* self)
 {
-  EnvironmentNode* next;
-  for(EnvironmentNode* node = self->root; node != NULL; node = next)
+  self->referenceCount--;
+
+  if(self->referenceCount == 0)
   {
-    // No objects are allocated on the heap (yet!) so we don't need to free anything else
-    next = node->next;
-    free(node);
+    EnvironmentNode* next;
+    for(EnvironmentNode* node = self->root; node != NULL; node = next)
+    {
+      // No objects are allocated on the heap (yet!) so we don't need to free anything else
+      next = node->next;
+      free(node);
+    }
+    free(self);
   }
 }
 
@@ -333,15 +343,14 @@ Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% for function_definition in function_definition_list %}
 Object user${{function_definition.name}}$implementation(Environment* parent, size_t argc, Object* args)
 {
-  Environment* environment = malloc(sizeof(Environment));;
-  Environment_initialize(environment, parent);
+  Environment* environment = Environment_construct(parent);
 
   {% for statement in function_definition.statement_list[:-1] %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
   Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
-  Environment_deinitialize(environment);
+  Environment_destruct(environment);
   return result;
 }
 
@@ -350,8 +359,7 @@ Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_
 
 int main(int argc, char** argv)
 {
-  Environment* environment = malloc(sizeof(Environment));
-  Environment_initialize(environment, NULL);
+  Environment* environment = Environment_construct(NULL);
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
@@ -362,8 +370,7 @@ int main(int argc, char** argv)
   {{ generate_statement(statement) }}
   {% endfor %}
 
-  Environment_deinitialize(environment);
-  free(environment);
+  Environment_destruct(environment);
 
   return 0;
 }
