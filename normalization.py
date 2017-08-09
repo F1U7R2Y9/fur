@@ -1,6 +1,7 @@
 import collections
 
 import parsing
+import util
 
 NormalVariableExpression = collections.namedtuple(
     'NormalVariableExpression',
@@ -75,6 +76,14 @@ NormalIfElseStatement = collections.namedtuple(
     ],
 )
 
+NormalFunctionDefinitionStatement = collections.namedtuple(
+    'NormalFunctionDefinitionStatement',
+    [
+        'name',
+        'statement_list',
+    ],
+)
+
 NormalProgram = collections.namedtuple(
     'NormalProgram',
     [
@@ -82,6 +91,7 @@ NormalProgram = collections.namedtuple(
     ],
 )
 
+# TODO Get rid of this
 def fake_normalization(counter, thing):
     return (counter, (), thing)
 
@@ -294,6 +304,7 @@ def normalize_expression(counter, expression):
 def normalize_expression_statement(counter, statement):
     counter, prestatements, normalized = {
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
+        parsing.FurIntegerLiteralExpression: normalize_expression,
     }[type(statement.expression)](counter, statement.expression)
 
     return (
@@ -302,22 +313,35 @@ def normalize_expression_statement(counter, statement):
         NormalExpressionStatement(expression=normalized),
     )
 
+def normalize_function_definition_statement(counter, statement):
+    return (
+        counter,
+        (),
+        NormalFunctionDefinitionStatement(
+            name=statement.name,
+            statement_list=normalize_statement_list(statement.statement_list),
+        ),
+    )
+
 def normalize_statement(counter, statement):
     return {
+        parsing.FurAssignmentStatement: fake_normalization, # TODO unfake this
         parsing.FurExpressionStatement: normalize_expression_statement,
-        parsing.FurAssignmentStatement: fake_normalization,
+        parsing.FurFunctionDefinitionStatement: normalize_function_definition_statement,
     }[type(statement)](counter, statement)
 
-def normalize(program):
+@util.force_generator(tuple)
+def normalize_statement_list(statement_list):
     counter = 0
-    statement_list = []
 
-    for statement in program.statement_list:
+    for statement in statement_list:
         counter, prestatements, normalized = normalize_statement(counter, statement)
         for s in prestatements:
-            statement_list.append(s)
-        statement_list.append(normalized)
+            yield s
+        yield normalized
+
+def normalize(program):
 
     return NormalProgram(
-        statement_list=statement_list,
+        statement_list=normalize_statement_list(program.statement_list),
     )

@@ -114,10 +114,26 @@ CIfElseStatement = collections.namedtuple(
     ],
 )
 
+CFunctionDeclaration = collections.namedtuple(
+    'CFunctionDeclaration',
+    [
+        'name',
+    ],
+)
+
+CFunctionDefinition = collections.namedtuple(
+    'CFunctionDefinition',
+    [
+        'name',
+        'statement_list',
+    ],
+)
+
 CProgram = collections.namedtuple(
     'CProgram',
     [
         'builtin_set',
+        'function_definition_list',
         'statements',
         'standard_libraries',
         'string_literal_list',
@@ -270,18 +286,17 @@ def transform_function_call_expression(accumulators, function_call):
         # TODO Check that the builtin is actually callable
         accumulators.builtin_set.add(function_call.function.value)
 
-        # TODO Use the symbol from SYMBOL LIST
-        return CFunctionCallExpression(
-            name=function_call.function.value,
-            argument_count=function_call.argument_count,
-            argument_items=transform_expression(accumulators, function_call.argument_items),
-        )
-
-    raise Exception()
+    # TODO Use the symbol from SYMBOL LIST
+    return CFunctionCallExpression(
+        name=function_call.function.value,
+        argument_count=function_call.argument_count,
+        argument_items=transform_expression(accumulators, function_call.argument_items),
+    )
 
 def transform_expression_statement(accumulators, statement):
     expression = {
         parsing.FurFunctionCallExpression: transform_function_call_expression,
+        parsing.FurIntegerLiteralExpression: transform_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
     }[type(statement.expression)](accumulators, statement.expression)
 
@@ -314,13 +329,26 @@ def transform_variable_reassignment_statement(accumulators, statement):
         expression=transform_expression(accumulators, statement.expression),
     )
 
+def transform_function_definition_statement(accumulators, statement):
+    # TODO Allow defining the same function in different contexts
+    if any(fd.name == statement.name for fd in accumulators.function_definition_list):
+        raise Exception('A function with name "{}" already exists'.format(statement.name))
+
+    accumulators.function_definition_list.append(CFunctionDefinition(
+        name=statement.name,
+        statement_list=tuple(transform_statement(accumulators, s) for s in statement.statement_list)
+    ))
+
+    return CFunctionDeclaration(name=statement.name)
+
 def transform_statement(accumulators, statement):
     return {
         parsing.FurAssignmentStatement: transform_symbol_assignment_statement,
         parsing.FurExpressionStatement: transform_expression_statement,
-        normalization.NormalExpressionStatement: transform_expression_statement,
-        normalization.NormalIfElseStatement: transform_if_else_statement,
         normalization.NormalArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
+        normalization.NormalExpressionStatement: transform_expression_statement,
+        normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
+        normalization.NormalIfElseStatement: transform_if_else_statement,
         normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)
@@ -330,6 +358,7 @@ Accumulators = collections.namedtuple(
     'Accumulators',
     [
         'builtin_set',
+        'function_definition_list',
         'symbol_list',
         'string_literal_list',
     ],
@@ -338,6 +367,7 @@ Accumulators = collections.namedtuple(
 def transform(program):
     accumulators = Accumulators(
         builtin_set=set(),
+        function_definition_list=[],
         symbol_list=[],
         string_literal_list=[],
     )
@@ -353,6 +383,7 @@ def transform(program):
 
     return CProgram(
         builtin_set=accumulators.builtin_set,
+        function_definition_list=accumulators.function_definition_list,
         statements=statement_list,
         standard_libraries=standard_library_set,
         string_literal_list=accumulators.string_literal_list,

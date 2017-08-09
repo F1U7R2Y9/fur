@@ -326,6 +326,23 @@ Object builtin$print$implementation(size_t argc, Object* args)
 Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% endif %}
 
+{% for function_definition in function_definition_list %}
+Object user${{function_definition.name}}$implementation(size_t argc, Object* args)
+{
+  Environment* environment = Environment_construct();
+
+  {% for statement in function_definition.statement_list %}
+  {{ generate_statement(statement) }}
+  {% endfor %}
+
+  Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
+  Environment_destruct(environment);
+  return result;
+}
+
+Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_definition.name}}$implementation };
+{% endfor %}
+
 int main(int argc, char** argv)
 {
   Environment* environment = Environment_construct();
@@ -336,7 +353,7 @@ int main(int argc, char** argv)
   {% endfor %}
 
   {% for statement in statements %}
-  {{ statement }}
+  {{ generate_statement(statement) }}
   {% endfor %}
 
   Environment_destruct(environment);

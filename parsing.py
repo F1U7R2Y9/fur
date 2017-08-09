@@ -213,7 +213,7 @@ def _or_level_expression_parser(index, tokens):
     )(index, tokens)
 
 def _comma_separated_list_parser(index, tokens):
-    failure = (False, index, None)
+    start_index = index
 
     expressions = []
 
@@ -222,7 +222,7 @@ def _comma_separated_list_parser(index, tokens):
     if success:
         expressions.append(expression)
     else:
-        return failure
+        return (True, start_index, ())
 
     while success and index < len(tokens) and tokens[index].type == 'comma':
         success = False
@@ -257,6 +257,14 @@ FurAssignmentStatement = collections.namedtuple(
     [
         'target',
         'expression',
+    ],
+)
+
+FurFunctionDefinitionStatement = collections.namedtuple(
+    'FurFunctionDefinitionStatement',
+    [
+        'name',
+        'statement_list',
     ],
 )
 
@@ -330,6 +338,55 @@ def _assignment_statement_parser(index, tokens):
 
     return True, index, FurAssignmentStatement(target=target, expression=expression)
 
+def _function_definition_statement_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].type == 'keyword' and tokens[index].match == 'def':
+        index += 1
+    else:
+        return failure
+
+    if tokens[index].type == 'symbol':
+        name = tokens[index].match
+        index += 1
+    else:
+        raise Exception('Expected function name, found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].line,
+        ))
+
+    if tokens[index].type == 'open_parenthese':
+        index += 1
+    else:
+        raise Exception('Expected "(", found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].line,
+        ))
+
+    if tokens[index].type == 'close_parenthese':
+        index += 1
+    else:
+        raise Exception('Expected ")", found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].line,
+        ))
+
+    if tokens[index].type == 'symbol' and tokens[index].match == 'do':
+        index += 1
+    else:
+        return failure
+
+    success, index, statement_list = _zero_or_more_parser(tuple, _statement_parser)(index, tokens)
+
+    _, index, _ = consume_newlines(index, tokens)
+
+    if tokens[index].type == 'keyword' and tokens[index].match == 'end':
+        index += 1
+    else:
+        return failure
+
+    return True, index, FurFunctionDefinitionStatement(name=name, statement_list=statement_list)
+
 def _statement_parser(index, tokens):
     _, index, _ = consume_newlines(index, tokens)
 
@@ -339,6 +396,7 @@ def _statement_parser(index, tokens):
     return _or_parser(
         _assignment_statement_parser,
         _expression_statement_parser,
+        _function_definition_statement_parser,
     )(index, tokens)
 
 def _program_formatter(statement_list):

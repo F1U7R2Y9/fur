@@ -113,9 +113,13 @@ def generate_if_else_statement(statement):
         indent('\n'.join(generate_statement(s) for s in statement.else_statements)),
     )
 
+def generate_function_declaration(statement):
+    return 'Environment_set(environment, "{}", user${});'.format(statement.name, statement.name)
+
 def generate_statement(statement):
     return {
         transformation.CExpressionStatement: generate_expression_statement,
+        transformation.CFunctionDeclaration: generate_function_declaration,
         transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
@@ -126,8 +130,10 @@ def generate_statement(statement):
 def generate(program):
     template = ENV.get_template('program.c')
     return template.render(
-        builtins=list(sorted(program.builtin_set)),
-        statements=[generate_statement(statement) for statement in program.statements],
+        builtins=tuple(sorted(program.builtin_set)),
+        function_definition_list=program.function_definition_list,
+        generate_statement=generate_statement,
+        statements=program.statements,
         standard_libraries=list(sorted(program.standard_libraries)),
         string_literal_list=program.string_literal_list,
         symbol_list=program.symbol_list,
