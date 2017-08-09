@@ -23,7 +23,7 @@ def generate_constant_expression(c_constant_expression):
     return CONSTANT_EXPRESSION_MAPPING[c_constant_expression.value]
 
 def generate_symbol_expression(c_symbol_expression):
-    return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
+    return 'Environment_get(&environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
         c_symbol_expression.symbol_list_index,
         c_symbol_expression.symbol,
     )
@@ -65,7 +65,7 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
-    return 'Environment_get(environment, "{}").instance.closure({}, {})'.format(
+    return 'Environment_get(&environment, "{}").instance.closure(&environment, {}, {})'.format(
         function_call.name,
         function_call.argument_count,
         # TODO This is just a single item containing a reference to the items list--make that clearer
@@ -73,11 +73,15 @@ def generate_function_call(function_call):
     )
 
 def generate_expression_statement(statement):
+    # TODO Do this at an earlier pass
+    if isinstance(statement.expression, transformation.CVariableExpression):
+        return '';
+
     # TODO Do we need to garbage collect the results of arbitrary statements?
     return '{};'.format(generate_expression(statement.expression))
 
 def generate_symbol_assignment_statement(c_assignment_statement):
-    return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
+    return 'Environment_set(&environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
         c_assignment_statement.target_symbol_list_index,
         c_assignment_statement.target,
         generate_expression(c_assignment_statement.expression),
@@ -107,14 +111,38 @@ def indent(s):
 
 def generate_if_else_statement(statement):
     # TODO Check that the argument is boolean
-    return 'if({}.instance.boolean)\n{{\n{}\n}}\nelse\n{{\n{}\n}}'.format(
+    condition_expression = '{}.instance.boolean'.format(
         generate_expression(statement.condition_expression),
-        indent('\n'.join(generate_statement(s) for s in statement.if_statements)),
-        indent('\n'.join(generate_statement(s) for s in statement.else_statements)),
     )
 
+    if len(statement.if_statements) == 0:
+        condition_expression = '!({})'.format(condition_expression)
+        if_statements = statement.else_statements
+        else_statements = ()
+    else:
+        if_statements = statement.if_statements
+        else_statements = statement.else_statements
+
+    generated_if_clause = 'if({})'.format(condition_expression)
+
+    if len(if_statements) == 0:
+        generated_if_statements = ';'
+    else:
+        generated_if_statements = indent('\n{{\n{}\n}}'.format(
+            indent('\n'.join(generate_statement(s) for s in if_statements)),
+        ))
+
+    if len(else_statements) == 0:
+        generated_else_statements = ''
+    else:
+        generated_else_statements = indent('\nelse\n{{\n{}\n}}'.format(
+            indent('\n'.join(generate_statement(s) for s in else_statements)),
+        ))
+
+    return generated_if_clause + generated_if_statements + generated_else_statements
+
 def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", user${});'.format(statement.name, statement.name)
+    return 'Environment_set(&environment, "{}", user${});'.format(statement.name, statement.name)
 
 def generate_statement(statement):
     return {

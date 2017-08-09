@@ -14,6 +14,10 @@ union Instance;
 typedef union Instance Instance;
 struct Object;
 typedef struct Object Object;
+struct EnvironmentNode;
+typedef struct EnvironmentNode EnvironmentNode;
+struct Environment;
+typedef struct Environment Environment;
 
 const char* const STRING_LITERAL_LIST[] = {
 {% for string_literal in string_literal_list %}
@@ -38,7 +42,7 @@ enum Type
 union Instance
 {
   bool boolean;
-  Object (*closure)(size_t, Object*);
+  Object (*closure)(Environment*, size_t, Object*);
   int32_t integer;
   const char* string;
 };
@@ -59,8 +63,6 @@ const Object FALSE = {
   false
 };
 
-struct EnvironmentNode;
-typedef struct EnvironmentNode EnvironmentNode;
 struct EnvironmentNode
 {
   const char* key;
@@ -68,22 +70,19 @@ struct EnvironmentNode
   EnvironmentNode* next;
 };
 
-struct Environment;
-typedef struct Environment Environment;
 struct Environment
 {
+  Environment* parent;
   EnvironmentNode* root;
 };
 
-Environment* Environment_construct()
+void Environment_initialize(Environment* self, Environment* parent)
 {
-  // TODO Handle malloc returning NULL
-  Environment* result = malloc(sizeof(Environment));
-  result->root = NULL;
-  return result;
+  self->parent = parent;
+  self->root = NULL;
 }
 
-void Environment_destruct(Environment* self)
+void Environment_deinitialize(Environment* self)
 {
   EnvironmentNode* next;
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
@@ -113,6 +112,11 @@ Object Environment_get(Environment* self, const char* const symbol)
     {
       return node->value;
     }
+  }
+
+  if(self->parent != NULL)
+  {
+    return Environment_get(self->parent, symbol);
   }
 
   // TODO Handle symbol errors
@@ -274,7 +278,7 @@ Object operator$or(Object left, Object right)
 }
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(size_t argc, Object* args)
+Object builtin$pow$implementation(Environment* parent, size_t argc, Object* args)
 {
   assert(argc == 2);
 
@@ -294,7 +298,7 @@ Object builtin$pow = { CLOSURE, (Instance)builtin$pow$implementation };
 {% endif %}
 
 {% if 'print' in builtins %}
-Object builtin$print$implementation(size_t argc, Object* args)
+Object builtin$print$implementation(Environment* parent, size_t argc, Object* args)
 {
   for(size_t i = 0; i < argc; i++)
   {
@@ -327,16 +331,17 @@ Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% endif %}
 
 {% for function_definition in function_definition_list %}
-Object user${{function_definition.name}}$implementation(size_t argc, Object* args)
+Object user${{function_definition.name}}$implementation(Environment* parent, size_t argc, Object* args)
 {
-  Environment* environment = Environment_construct();
+  Environment environment;
+  Environment_initialize(&environment, parent);
 
-  {% for statement in function_definition.statement_list %}
+  {% for statement in function_definition.statement_list[:-1] %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
   Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
-  Environment_destruct(environment);
+  Environment_deinitialize(&environment);
   return result;
 }
 
@@ -345,18 +350,19 @@ Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_
 
 int main(int argc, char** argv)
 {
-  Environment* environment = Environment_construct();
+  Environment environment;
+  Environment_initialize(&environment, NULL);
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
-  Environment_set(environment, "{{ builtin }}", builtin${{ builtin }});
+  Environment_set(&environment, "{{ builtin }}", builtin${{ builtin }});
   {% endfor %}
 
   {% for statement in statements %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
-  Environment_destruct(environment);
+  Environment_deinitialize(&environment);
 
   return 0;
 }

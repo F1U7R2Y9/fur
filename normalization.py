@@ -302,8 +302,11 @@ def normalize_expression(counter, expression):
     }[type(expression)](counter, expression)
 
 def normalize_expression_statement(counter, statement):
+    # TODO Verify all expression types are supported and just call normalize_expression
     counter, prestatements, normalized = {
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
+        parsing.FurSymbolExpression: normalize_expression,
+        parsing.FurInfixExpression: normalize_expression,
         parsing.FurIntegerLiteralExpression: normalize_expression,
     }[type(statement.expression)](counter, statement.expression)
 

@@ -294,10 +294,14 @@ def transform_function_call_expression(accumulators, function_call):
     )
 
 def transform_expression_statement(accumulators, statement):
+    # TODO At some point we can verify that all expression types are supported and just call transform_expression
     expression = {
         parsing.FurFunctionCallExpression: transform_function_call_expression,
+        parsing.FurInfixExpression: transform_expression,
         parsing.FurIntegerLiteralExpression: transform_expression,
+        parsing.FurSymbolExpression: transform_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
+        normalization.NormalVariableExpression: transform_expression,
     }[type(statement.expression)](accumulators, statement.expression)
 
     return CExpressionStatement(

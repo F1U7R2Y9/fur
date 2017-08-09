@@ -1,0 +1,24 @@
+def return_zero() do
+  print('This should not print\n')
+  2
+end
+
+def return_one() do
+  print('This should only print once.\n')
+  1
+end
+
+def return_true() do
+  print('This should print exactly twice.\n')
+  true
+end
+
+def return_false() do
+  print('This should print exactly twice.\n')
+  false
+end
+
+0 < return_one() < 2
+0 < 0 < return_zero()
+return_true() or return_true()
+return_false() and return_false()
