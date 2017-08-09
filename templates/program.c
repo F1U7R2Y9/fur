@@ -333,15 +333,15 @@ Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% for function_definition in function_definition_list %}
 Object user${{function_definition.name}}$implementation(Environment* parent, size_t argc, Object* args)
 {
-  Environment environment;
-  Environment_initialize(&environment, parent);
+  Environment* environment = malloc(sizeof(Environment));;
+  Environment_initialize(environment, parent);
 
   {% for statement in function_definition.statement_list[:-1] %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
   Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
-  Environment_deinitialize(&environment);
+  Environment_deinitialize(environment);
   return result;
 }
 
@@ -350,19 +350,20 @@ Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_
 
 int main(int argc, char** argv)
 {
-  Environment environment;
-  Environment_initialize(&environment, NULL);
+  Environment* environment = malloc(sizeof(Environment));
+  Environment_initialize(environment, NULL);
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
-  Environment_set(&environment, "{{ builtin }}", builtin${{ builtin }});
+  Environment_set(environment, "{{ builtin }}", builtin${{ builtin }});
   {% endfor %}
 
   {% for statement in statements %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
-  Environment_deinitialize(&environment);
+  Environment_deinitialize(environment);
+  free(environment);
 
   return 0;
 }

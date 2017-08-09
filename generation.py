@@ -23,7 +23,7 @@ def generate_constant_expression(c_constant_expression):
     return CONSTANT_EXPRESSION_MAPPING[c_constant_expression.value]
 
 def generate_symbol_expression(c_symbol_expression):
-    return 'Environment_get(&environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
+    return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
         c_symbol_expression.symbol_list_index,
         c_symbol_expression.symbol,
     )
@@ -65,7 +65,7 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
-    return 'Environment_get(&environment, "{}").instance.closure(&environment, {}, {})'.format(
+    return 'Environment_get(environment, "{}").instance.closure(environment, {}, {})'.format(
         function_call.name,
         function_call.argument_count,
         # TODO This is just a single item containing a reference to the items list--make that clearer
@@ -81,7 +81,7 @@ def generate_expression_statement(statement):
     return '{};'.format(generate_expression(statement.expression))
 
 def generate_symbol_assignment_statement(c_assignment_statement):
-    return 'Environment_set(&environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
+    return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
         c_assignment_statement.target_symbol_list_index,
         c_assignment_statement.target,
         generate_expression(c_assignment_statement.expression),
@@ -142,7 +142,7 @@ def generate_if_else_statement(statement):
     return generated_if_clause + generated_if_statements + generated_else_statements
 
 def generate_function_declaration(statement):
-    return 'Environment_set(&environment, "{}", user${});'.format(statement.name, statement.name)
+    return 'Environment_set(environment, "{}", user${});'.format(statement.name, statement.name)
 
 def generate_statement(statement):
     return {
