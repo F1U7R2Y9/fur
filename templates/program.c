@@ -390,10 +390,7 @@ Object user${{function_definition.name}}$implementation(EnvironmentPool* environ
   return result;
 }
 
-// TODO Allocate user-defined Closures on the heap
-Object user${{function_definition.name}} = { CLOSURE, (Instance)(Closure){ user${{function_definition.name}}$implementation } };
 {% endfor %}
-
 int main(int argc, char** argv)
 {
   EnvironmentPool* environmentPool = EnvironmentPool_construct();

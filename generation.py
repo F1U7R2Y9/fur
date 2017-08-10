@@ -142,7 +142,7 @@ def generate_if_else_statement(statement):
     return generated_if_clause + generated_if_statements + generated_else_statements
 
 def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", user${});'.format(statement.name, statement.name)
+    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ user${}$implementation }} }});'.format(statement.name, statement.name)
 
 def generate_statement(statement):
     return {
