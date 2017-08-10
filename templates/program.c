@@ -77,17 +77,25 @@ struct Environment
   EnvironmentNode* root;
 };
 
+Environment* Environment_reference(Environment* self)
+{
+  if(self != NULL) self->referenceCount++;
+  return self;
+}
+
 Environment* Environment_construct(Environment* parent)
 {
   Environment* result = malloc(sizeof(Environment));
   result->referenceCount = 1;
-  result->parent = parent;
+  result->parent = Environment_reference(parent);
   result->root = NULL;
   return result;
 }
 
 void Environment_destruct(Environment* self)
 {
+  if(self == NULL) return;
+
   self->referenceCount--;
 
   if(self->referenceCount == 0)
@@ -99,6 +107,7 @@ void Environment_destruct(Environment* self)
       next = node->next;
       free(node);
     }
+    Environment_destruct(self->parent);
     free(self);
   }
 }
