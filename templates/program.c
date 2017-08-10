@@ -160,60 +160,18 @@ Object operator$negate(Object input)
   return result;
 }
 
-Object operator$add(Object left, Object right)
+{% for od in operator_declarations %}
+Object operator${{ od.name }}(Object left, Object right)
 {
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
+  assert(left.type == {{ od.input_type.upper() }});
+  assert(right.type == {{ od.input_type.upper() }});
 
   Object result;
-  result.type = INTEGER;
-  result.instance.integer = left.instance.integer + right.instance.integer;
+  result.type = {{ od.result_type.upper() }};
+  result.instance.{{ od.result_type.lower() }} = left.instance.{{ od.input_type.lower() }} {{ od.c_operator }} right.instance.{{ od.input_type.lower() }};
   return result;
 }
-
-Object operator$subtract(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result;
-  result.type = INTEGER;
-  result.instance.integer = left.instance.integer - right.instance.integer;
-  return result;
-}
-
-Object operator$multiply(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result;
-  result.type = INTEGER;
-  result.instance.integer = left.instance.integer * right.instance.integer;
-  return result;
-}
-
-Object operator$integerDivide(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result;
-  result.type = INTEGER;
-  result.instance.integer = left.instance.integer / right.instance.integer;
-  return result;
-}
-
-Object operator$modularDivide(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result;
-  result.type = INTEGER;
-  result.instance.integer = left.instance.integer % right.instance.integer;
-  return result;
-}
+{% endfor %}
 
 Object operator$equals(Object left, Object right)
 {
@@ -266,24 +224,6 @@ Object operator$lessThanOrEqual(Object left, Object right)
   assert(right.type == INTEGER);
 
   Object result = { BOOLEAN, { left.instance.integer <= right.instance.integer } };
-  return result;
-}
-
-Object operator$and(Object left, Object right)
-{
-  assert(left.type == BOOLEAN);
-  assert(right.type == BOOLEAN);
-
-  Object result = { BOOLEAN, { left.instance.boolean && right.instance.boolean } };
-  return result;
-}
-
-Object operator$or(Object left, Object right)
-{
-  assert(left.type == BOOLEAN);
-  assert(right.type == BOOLEAN);
-
-  Object result = { BOOLEAN, { left.instance.boolean || right.instance.boolean } };
   return result;
 }
 

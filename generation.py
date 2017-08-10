@@ -161,6 +161,7 @@ def generate(program):
         builtins=tuple(sorted(program.builtin_set)),
         function_definition_list=program.function_definition_list,
         generate_statement=generate_statement,
+        operator_declarations=program.operator_declarations,
         statements=program.statements,
         standard_libraries=list(sorted(program.standard_libraries)),
         string_literal_list=program.string_literal_list,

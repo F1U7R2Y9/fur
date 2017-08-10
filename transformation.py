@@ -134,6 +134,7 @@ CProgram = collections.namedtuple(
     [
         'builtin_set',
         'function_definition_list',
+        'operator_declarations',
         'statements',
         'standard_libraries',
         'string_literal_list',
@@ -215,22 +216,34 @@ def transform_symbol_expression(accumulators, expression):
         symbol_list_index=accumulators.symbol_list.index(expression.value),
     )
 
+CInfixOperatorDeclaration = collections.namedtuple(
+    'CInfixOperatorDeclaration',
+    [
+        'name',
+        'input_type',
+        'result_type',
+        'c_operator',
+    ],
+)
+
+INFIX_OPERATOR_TO_DECLARATION = {
+    '+':    CInfixOperatorDeclaration(name='add', input_type='INTEGER', result_type='INTEGER', c_operator='+'),
+    '-':    CInfixOperatorDeclaration(name='subtract', input_type='INTEGER', result_type='INTEGER', c_operator='-'),
+    '*':    CInfixOperatorDeclaration(name='multiply', input_type='INTEGER', result_type='INTEGER', c_operator='*'),
+    '//':   CInfixOperatorDeclaration(name='integerDivide', input_type='INTEGER', result_type='INTEGER', c_operator='/'),
+    '%':    CInfixOperatorDeclaration(name='modularDivide', input_type='INTEGER', result_type='INTEGER', c_operator='%'),
+    'and':  CInfixOperatorDeclaration(name='and', input_type='BOOLEAN', result_type='BOOLEAN', c_operator='&&'),
+    'or':   CInfixOperatorDeclaration(name='or', input_type='BOOLEAN', result_type='BOOLEAN', c_operator='||'),
+}
+
 def transform_infix_expression(accumulators, expression):
     if expression.order == 'comparison_level':
         return transform_comparison_level_expression(accumulators, expression)
 
-    INFIX_OPERATOR_TO_FUNCTION_NAME = {
-        '+':    'add',
-        '-':    'subtract',
-        '*':    'multiply',
-        '//':   'integerDivide',
-        '%':    'modularDivide',
-        'and':  'and',
-        'or':   'or',
-    }
+    accumulators.operator_set.add(INFIX_OPERATOR_TO_DECLARATION[expression.operator])
 
     return CFunctionCallForFurInfixOperator(
-        name=INFIX_OPERATOR_TO_FUNCTION_NAME[expression.operator],
+        name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
         left=transform_expression(accumulators, expression.left),
         right=transform_expression(accumulators, expression.right),
     )
@@ -241,6 +254,11 @@ def transform_integer_literal_expression(accumulators, expression):
 def transform_parenthesized_expression(accumulators, expression):
     # Parentheses can be removed because everything in the C output is explicitly parenthesized
     return transform_expression(accumulators, expression.internal)
+
+def transform_negation_expression(accumulators, expression):
+    return CNegationExpression(
+        value=transform_expression(accumulators, expression.internal_expression),
+    )
 
 def transform_expression(accumulators, expression):
     # TODO Clean up handlers for parsing expressions
@@ -270,11 +288,6 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
             accumulators,
             assignment_statement.expression,
         ),
-    )
-
-def transform_negation_expression(accumulators, expression):
-    return CNegationExpression(
-        value=transform_expression(accumulators, expression.internal_expression),
     )
 
 def transform_function_call_expression(accumulators, function_call):
@@ -386,6 +399,7 @@ def transform(program):
     return CProgram(
         builtin_set=accumulators.builtin_set,
         function_definition_list=accumulators.function_definition_list,
+        operator_declarations=tuple(sorted(accumulators.operator_set)),
         statements=statement_list,
         standard_libraries=standard_library_set,
         string_literal_list=accumulators.string_literal_list,
