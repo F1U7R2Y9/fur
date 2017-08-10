@@ -192,6 +192,29 @@ BUILTINS = {
 def transform_variable_expression(accumulators, expression):
     return CVariableExpression(variable=expression.variable)
 
+def transform_string_literal(accumulators, expression):
+    value = expression.value
+
+    try:
+        index = accumulators.string_literal_list.index(value)
+    except ValueError:
+        index = len(accumulators.string_literal_list)
+        accumulators.string_literal_list.append(value)
+
+    return CStringLiteral(index=index, value=value)
+
+def transform_symbol_expression(accumulators, expression):
+    if expression.value in ['true', 'false']:
+        return CConstantExpression(value=expression.value)
+
+    if expression.value not in accumulators.symbol_list:
+        symbol_list.append(expression.value)
+
+    return CSymbolExpression(
+        symbol=expression.value,
+        symbol_list_index=accumulators.symbol_list.index(expression.value),
+    )
+
 def transform_infix_expression(accumulators, expression):
     if expression.order == 'comparison_level':
         return transform_comparison_level_expression(accumulators, expression)
@@ -212,50 +235,23 @@ def transform_infix_expression(accumulators, expression):
         right=transform_expression(accumulators, expression.right),
     )
 
+def transform_integer_literal_expression(accumulators, expression):
+    return CIntegerLiteral(value=expression.value)
+
+def transform_parenthesized_expression(accumulators, expression):
+    # Parentheses can be removed because everything in the C output is explicitly parenthesized
+    return transform_expression(accumulators, expression.internal)
+
 def transform_expression(accumulators, expression):
-    if isinstance(expression, parsing.FurParenthesizedExpression):
-        # Parentheses can be removed because everything in the C output is explicitly parenthesized
-        return transform_expression(accumulators, expression.internal)
-
-    if isinstance(expression, parsing.FurNegationExpression):
-        return transform_negation_expression(accumulators, expression)
-
-    if isinstance(expression, parsing.FurFunctionCallExpression):
-        return transform_function_call_expression(accumulators, expression)
-
-    if isinstance(expression, parsing.FurSymbolExpression):
-        if expression.value in ['true', 'false']:
-            return CConstantExpression(value=expression.value)
-
-        if expression.value not in accumulators.symbol_list:
-            symbol_list.append(expression.value)
-
-        return CSymbolExpression(
-            symbol=expression.value,
-            symbol_list_index=accumulators.symbol_list.index(expression.value),
-        )
-
-    if isinstance(expression, parsing.FurStringLiteralExpression):
-        value = expression.value
-
-        try:
-            index = accumulators.string_literal_list.index(value)
-        except ValueError:
-            index = len(accumulators.string_literal_list)
-            accumulators.string_literal_list.append(value)
-
-        return CStringLiteral(index=index, value=value)
-
-    LITERAL_TYPE_MAPPING = {
-        parsing.FurIntegerLiteralExpression: CIntegerLiteral,
-    }
-
-    if type(expression) in LITERAL_TYPE_MAPPING:
-        return LITERAL_TYPE_MAPPING[type(expression)](value=expression.value)
-
-    # TODO Handle all possible types in this form
+    # TODO Clean up handlers for parsing expressions
     return {
-        parsing.FurInfixExpression: transform_infix_expression, # TODO Shouldn't need this
+        parsing.FurFunctionCallExpression: transform_function_call_expression,
+        parsing.FurInfixExpression: transform_infix_expression,
+        parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
+        parsing.FurNegationExpression: transform_negation_expression,
+        parsing.FurParenthesizedExpression: transform_parenthesized_expression,
+        parsing.FurStringLiteralExpression: transform_string_literal,
+        parsing.FurSymbolExpression: transform_symbol_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
         normalization.NormalNegationExpression: transform_negation_expression,
@@ -363,6 +359,7 @@ Accumulators = collections.namedtuple(
     [
         'builtin_set',
         'function_definition_list',
+        'operator_set',
         'symbol_list',
         'string_literal_list',
     ],
@@ -372,6 +369,7 @@ def transform(program):
     accumulators = Accumulators(
         builtin_set=set(),
         function_definition_list=[],
+        operator_set=set(),
         symbol_list=[],
         string_literal_list=[],
     )
