@@ -142,47 +142,6 @@ CProgram = collections.namedtuple(
     ],
 )
 
-EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING = {
-    '==':   'equals',
-    '!=':   'notEquals',
-    '<=':   'lessThanOrEqual',
-    '>=':   'greaterThanOrEqual',
-    '<':    'lessThan',
-    '>':    'greaterThan',
-}
-
-def transform_comparison_level_expression(accumulators, expression):
-    # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
-    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'comparison_level':
-        left = transform_comparison_level_expression(
-            accumulators,
-            expression.left
-        )
-
-        middle = left.right
-
-        right = transform_expression(
-            accumulators,
-            expression.right,
-        )
-
-        # TODO Don't evaluate the middle expression twice
-        return CFunctionCallForFurInfixOperator(
-            name='and',
-            left=left,
-            right=CFunctionCallForFurInfixOperator(
-                name=EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING[expression.operator],
-                left=middle,
-                right=right,
-            ),
-        )
-
-    return CFunctionCallForFurInfixOperator(
-        name=EQUALITY_LEVEL_OPERATOR_TO_FUNCTION_NAME_MAPPING[expression.operator],
-        left=transform_expression(accumulators, expression.left),
-        right=transform_expression(accumulators, expression.right),
-    )
-
 BUILTINS = {
     'false':    [],
     'pow':      ['math.h'],
@@ -216,25 +175,65 @@ def transform_symbol_expression(accumulators, expression):
         symbol_list_index=accumulators.symbol_list.index(expression.value),
     )
 
-CInfixOperatorDeclaration = collections.namedtuple(
-    'CInfixOperatorDeclaration',
+CInfixDeclaration = collections.namedtuple(
+    'CInfixDeclaration',
     [
         'name',
-        'input_type',
-        'result_type',
-        'c_operator',
+        'in_type',
+        'out_type',
+        'operator',
     ],
 )
 
 INFIX_OPERATOR_TO_DECLARATION = {
-    '+':    CInfixOperatorDeclaration(name='add', input_type='INTEGER', result_type='INTEGER', c_operator='+'),
-    '-':    CInfixOperatorDeclaration(name='subtract', input_type='INTEGER', result_type='INTEGER', c_operator='-'),
-    '*':    CInfixOperatorDeclaration(name='multiply', input_type='INTEGER', result_type='INTEGER', c_operator='*'),
-    '//':   CInfixOperatorDeclaration(name='integerDivide', input_type='INTEGER', result_type='INTEGER', c_operator='/'),
-    '%':    CInfixOperatorDeclaration(name='modularDivide', input_type='INTEGER', result_type='INTEGER', c_operator='%'),
-    'and':  CInfixOperatorDeclaration(name='and', input_type='BOOLEAN', result_type='BOOLEAN', c_operator='&&'),
-    'or':   CInfixOperatorDeclaration(name='or', input_type='BOOLEAN', result_type='BOOLEAN', c_operator='||'),
+    '+':    CInfixDeclaration(name='add', in_type='integer', out_type='integer', operator='+'),
+    '-':    CInfixDeclaration(name='subtract', in_type='integer', out_type='integer', operator='-'),
+    '*':    CInfixDeclaration(name='multiply', in_type='integer', out_type='integer', operator='*'),
+    '//':   CInfixDeclaration(name='integerDivide', in_type='integer', out_type='integer', operator='/'),
+    '%':    CInfixDeclaration(name='modularDivide', in_type='integer', out_type='integer', operator='%'),
+    'and':  CInfixDeclaration(name='and', in_type='boolean', out_type='boolean', operator='&&'),
+    'or':   CInfixDeclaration(name='or', in_type='boolean', out_type='boolean', operator='||'),
+    '==':   CInfixDeclaration(name='equals', in_type='integer', out_type='boolean', operator='=='),
+    '!=':   CInfixDeclaration(name='notEquals', in_type='integer', out_type='boolean', operator='!='),
+    '<=':   CInfixDeclaration(name='lessThanOrEqual', in_type='integer', out_type='boolean', operator='<='),
+    '>=':   CInfixDeclaration(name='greaterThanOrEqual', in_type='integer', out_type='boolean', operator='>='),
+    '<':    CInfixDeclaration(name='lessThan', in_type='integer', out_type='boolean', operator='<'),
+    '>':    CInfixDeclaration(name='greaterThan', in_type='integer', out_type='boolean', operator='>'),
 }
+
+def transform_comparison_level_expression(accumulators, expression):
+    accumulators.operator_set.add(INFIX_OPERATOR_TO_DECLARATION[expression.operator])
+
+    # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
+    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'comparison_level':
+        left = transform_comparison_level_expression(
+            accumulators,
+            expression.left
+        )
+
+        middle = left.right
+
+        right = transform_expression(
+            accumulators,
+            expression.right,
+        )
+
+        # TODO Don't evaluate the middle expression twice
+        return CFunctionCallForFurInfixOperator(
+            name='and',
+            left=left,
+            right=CFunctionCallForFurInfixOperator(
+                name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
+                left=middle,
+                right=right,
+            ),
+        )
+
+    return CFunctionCallForFurInfixOperator(
+        name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
+        left=transform_expression(accumulators, expression.left),
+        right=transform_expression(accumulators, expression.right),
+    )
 
 def transform_infix_expression(accumulators, expression):
     if expression.order == 'comparison_level':

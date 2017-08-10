@@ -160,72 +160,18 @@ Object operator$negate(Object input)
   return result;
 }
 
-{% for od in operator_declarations %}
-Object operator${{ od.name }}(Object left, Object right)
+{% for id in infix_declarations %}
+Object operator${{ id.name }}(Object left, Object right)
 {
-  assert(left.type == {{ od.input_type.upper() }});
-  assert(right.type == {{ od.input_type.upper() }});
+  assert(left.type == {{ id.in_type.upper() }});
+  assert(right.type == {{ id.in_type.upper() }});
 
   Object result;
-  result.type = {{ od.result_type.upper() }};
-  result.instance.{{ od.result_type.lower() }} = left.instance.{{ od.input_type.lower() }} {{ od.c_operator }} right.instance.{{ od.input_type.lower() }};
+  result.type = {{ id.out_type.upper() }};
+  result.instance.{{ id.out_type.lower() }} = left.instance.{{ id.in_type.lower() }} {{ id.operator }} right.instance.{{ id.in_type.lower() }};
   return result;
 }
 {% endfor %}
-
-Object operator$equals(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer == right.instance.integer } };
-  return result;
-}
-
-Object operator$notEquals(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer != right.instance.integer } };
-  return result;
-}
-
-Object operator$greaterThan(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer > right.instance.integer } };
-  return result;
-}
-
-Object operator$lessThan(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer < right.instance.integer } };
-  return result;
-}
-
-Object operator$greaterThanOrEqual(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer >= right.instance.integer } };
-  return result;
-}
-
-Object operator$lessThanOrEqual(Object left, Object right)
-{
-  assert(left.type == INTEGER);
-  assert(right.type == INTEGER);
-
-  Object result = { BOOLEAN, { left.instance.integer <= right.instance.integer } };
-  return result;
-}
 
 {% if 'pow' in builtins %}
 Object builtin$pow$implementation(Environment* parent, size_t argc, Object* args)
