@@ -127,11 +127,12 @@ void Environment_setLive(Environment* self, bool live)
   self->live = live;
 }
 
-void Environment_mark(Environment* self, bool mark)
+void Environment_mark(Environment* self)
 {
   if(self == NULL) return;
-  self->mark = mark;
-  Environment_mark(self->parent, mark);
+  if(self->mark) return; // Prevents infinite recursion in the case of cycles
+  self->mark = true;
+  Environment_mark(self->parent);
 }
 
 // This need not be thread safe because environments exist on one thread only
@@ -217,15 +218,23 @@ void EnvironmentPool_destruct(EnvironmentPool* self)
 
 void EnvironmentPool_GC(EnvironmentPool* self)
 {
-  bool mark = !self->environments[0].mark;
+  // Unmark all the environments
+  for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
+  {
+    for(int8_t i = 0; i < POOL_SIZE; i++)
+    {
+      current->environments[i].mark = false;
+    }
+  }
 
+  // Mark live enviroments and environments referenced by live environments
   for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
   {
     for(int8_t i = 0; i < POOL_SIZE; i++)
     {
       if(current->environments[i].live)
       {
-        Environment_mark(&(current->environments[i]), mark);
+        Environment_mark(&(current->environments[i]));
       }
     }
   }
@@ -235,9 +244,10 @@ void EnvironmentPool_GC(EnvironmentPool* self)
   {
     for(int8_t i = POOL_SIZE - 1; i >= 0; i--)
     {
-      if(current->environments[i].mark != mark)
+      if(!current->environments[i].mark && current->allocatedFlags[i])
       {
         Environment_deinitialize(&(current->environments[i]));
+        current->allocatedFlags[i] = false;
         current->freeIndex = i;
       }
     }
