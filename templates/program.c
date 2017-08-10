@@ -55,10 +55,17 @@ enum Type
   STRING
 };
 
+struct Closure;
+typedef struct Closure Closure;
+struct Closure
+{
+  Object (*call)(EnvironmentPool*, Environment*, size_t, Object*);
+};
+
 union Instance
 {
   bool boolean;
-  Object (*closure)(EnvironmentPool*, Environment*, size_t, Object*);
+  Closure closure;
   int32_t integer;
   const char* string;
 };
@@ -331,7 +338,7 @@ Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment*
   return result;
 }
 
-Object builtin$pow = { CLOSURE, (Instance)builtin$pow$implementation };
+Object builtin$pow = { CLOSURE, (Instance)(Closure){ builtin$pow$implementation } };
 {% endif %}
 
 {% if 'print' in builtins %}
@@ -364,7 +371,7 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
   return FALSE;
 }
 
-Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
+Object builtin$print = { CLOSURE, (Instance)(Closure){ builtin$print$implementation } };
 {% endif %}
 
 {% for function_definition in function_definition_list %}
@@ -383,7 +390,8 @@ Object user${{function_definition.name}}$implementation(EnvironmentPool* environ
   return result;
 }
 
-Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_definition.name}}$implementation };
+// TODO Allocate user-defined Closures on the heap
+Object user${{function_definition.name}} = { CLOSURE, (Instance)(Closure){ user${{function_definition.name}}$implementation } };
 {% endfor %}
 
 int main(int argc, char** argv)

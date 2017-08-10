@@ -65,7 +65,7 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
-    return 'Environment_get(environment, "{}").instance.closure(environmentPool, environment, {}, {})'.format(
+    return 'Environment_get(environment, "{}").instance.closure.call(environmentPool, environment, {}, {})'.format(
         function_call.name,
         function_call.argument_count,
         # TODO This is just a single item containing a reference to the items list--make that clearer
