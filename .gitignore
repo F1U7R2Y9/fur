@@ -2,3 +2,4 @@
 a.out
 examples/*.c
 __pycache__/
+*.dSYM/
