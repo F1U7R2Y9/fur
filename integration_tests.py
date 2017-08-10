@@ -47,6 +47,61 @@ def add_example_output_test(filename):
 
     setattr(OutputTests, 'test_' + filename, test)
 
+class MemoryLeakTest(unittest.TestCase):
+    pass
+
+def add_example_memory_leak_test(filename):
+    def test(self):
+        compile_fur_to_c_result = subprocess.call([
+            'python',
+            'main.py',
+            os.path.join('examples', filename),
+        ])
+
+        if compile_fur_to_c_result != 0:
+            raise Exception('Example "{}" did not compile'.format(filename))
+
+        compile_c_to_executable_result = subprocess.call([
+            'gcc',
+            '-ggdb3',
+            os.path.join('examples', filename + '.c'),
+        ])
+
+        if compile_c_to_executable_result != 0:
+            raise Exception('Example output "{}" did not compile'.format(filename + '.c'))
+
+        try:
+            with open(os.devnull, 'w') as devnull:
+                expected_return = 0
+                actual_return = subprocess.call(
+                    [
+                        'valgrind',
+                        '--tool=memcheck',
+                        '--leak-check=yes',
+                        '--show-reachable=yes',
+                        '--num-callers=20',
+                        '--track-fds=yes',
+                        '--error-exitcode=666',
+                        '-q',
+                        './a.out',
+                    ],
+                    stdout=devnull,
+                    stderr=devnull,
+                )
+
+                self.assertEqual(expected_return, actual_return)
+
+                # We don't clean up the C file in the finally clause because it can be useful to have in case of errors
+                os.remove(os.path.join('examples', filename + '.c'))
+
+        finally:
+            try:
+                os.remove('a.out')
+            except OSError:
+                pass
+
+    setattr(MemoryLeakTest, 'test_' + filename, test)
+
 filenames = (
     entry.name
     for entry in os.scandir('examples')
@@ -56,5 +111,6 @@ filenames = (
 
 for filename in filenames:
     add_example_output_test(filename)
+    add_example_memory_leak_test(filename)
 
 unittest.main()
