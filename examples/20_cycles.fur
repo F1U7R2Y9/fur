@@ -1,0 +1,30 @@
+# Environment A is created here
+
+# outer references environment A
+def outer() do
+  # Environment B is created here referencing A
+
+  # middle references environment B
+  def middle() do
+    # Environment C is created here referencing B
+
+    # inner references environment C
+    def inner() do
+      # This is never executed
+      42
+    end
+
+    inner
+    # At this point, environment C falls out of scope
+    # However, environment C is still referenced by inner, which is being returned
+  end
+
+  variable = middle()
+  # Now environment B -> variable -> inner -> C -> B
+
+  42
+  # Nothing from the cycle is returned and B falls out of scope
+  # All references are lost, but reference counts are still > 0 because of the cycle
+end
+
+print(outer())
