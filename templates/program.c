@@ -55,12 +55,12 @@ struct Object
 
 const Object TRUE = {
   BOOLEAN,
-  true
+  { true }
 };
 
 const Object FALSE = {
   BOOLEAN,
-  false
+  { false }
 };
 
 struct EnvironmentNode
@@ -220,7 +220,7 @@ Object operator$equals(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer == right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer == right.instance.integer } };
   return result;
 }
 
@@ -229,7 +229,7 @@ Object operator$notEquals(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer != right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer != right.instance.integer } };
   return result;
 }
 
@@ -238,7 +238,7 @@ Object operator$greaterThan(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer > right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer > right.instance.integer } };
   return result;
 }
 
@@ -247,7 +247,7 @@ Object operator$lessThan(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer < right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer < right.instance.integer } };
   return result;
 }
 
@@ -256,7 +256,7 @@ Object operator$greaterThanOrEqual(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer >= right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer >= right.instance.integer } };
   return result;
 }
 
@@ -265,7 +265,7 @@ Object operator$lessThanOrEqual(Object left, Object right)
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
 
-  Object result = { BOOLEAN, left.instance.integer <= right.instance.integer };
+  Object result = { BOOLEAN, { left.instance.integer <= right.instance.integer } };
   return result;
 }
 
@@ -274,7 +274,7 @@ Object operator$and(Object left, Object right)
   assert(left.type == BOOLEAN);
   assert(right.type == BOOLEAN);
 
-  Object result = { BOOLEAN, left.instance.boolean && right.instance.boolean };
+  Object result = { BOOLEAN, { left.instance.boolean && right.instance.boolean } };
   return result;
 }
 
@@ -283,7 +283,7 @@ Object operator$or(Object left, Object right)
   assert(left.type == BOOLEAN);
   assert(right.type == BOOLEAN);
 
-  Object result = { BOOLEAN, left.instance.boolean || right.instance.boolean };
+  Object result = { BOOLEAN, { left.instance.boolean || right.instance.boolean } };
   return result;
 }
 
