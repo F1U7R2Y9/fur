@@ -59,6 +59,7 @@ struct Closure;
 typedef struct Closure Closure;
 struct Closure
 {
+  Environment* closed;
   Object (*call)(EnvironmentPool*, Environment*, size_t, Object*);
 };
 
@@ -131,8 +132,28 @@ void Environment_mark(Environment* self)
 {
   if(self == NULL) return;
   if(self->mark) return; // Prevents infinite recursion in the case of cycles
+
   self->mark = true;
+
   Environment_mark(self->parent);
+
+  for(EnvironmentNode* node = self->root; node != NULL; node = node->next)
+  {
+    switch(node->value.type)
+    {
+      case BOOLEAN:
+      case INTEGER:
+      case STRING:
+        break;
+
+      case CLOSURE:
+        Environment_mark(node->value.instance.closure.closed);
+        break;
+
+      default:
+        assert(false);
+    }
+  }
 }
 
 // This need not be thread safe because environments exist on one thread only
@@ -348,7 +369,7 @@ Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment*
   return result;
 }
 
-Object builtin$pow = { CLOSURE, (Instance)(Closure){ builtin$pow$implementation } };
+Object builtin$pow = { CLOSURE, (Instance)(Closure){ NULL, builtin$pow$implementation } };
 {% endif %}
 
 {% if 'print' in builtins %}
@@ -381,7 +402,7 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
   return FALSE;
 }
 
-Object builtin$print = { CLOSURE, (Instance)(Closure){ builtin$print$implementation } };
+Object builtin$print = { CLOSURE, (Instance)(Closure){ NULL, builtin$print$implementation } };
 {% endif %}
 
 {% for function_definition in function_definition_list %}

@@ -65,6 +65,7 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
+    # TODO Call with the closed environment, not the calling environment
     return 'Environment_get(environment, "{}").instance.closure.call(environmentPool, environment, {}, {})'.format(
         function_call.name,
         function_call.argument_count,
@@ -142,7 +143,7 @@ def generate_if_else_statement(statement):
     return generated_if_clause + generated_if_statements + generated_else_statements
 
 def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ user${}$implementation }} }});'.format(statement.name, statement.name)
+    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(statement.name, statement.name)
 
 def generate_statement(statement):
     return {
