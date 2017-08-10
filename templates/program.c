@@ -32,6 +32,8 @@ struct EnvironmentNode;
 typedef struct EnvironmentNode EnvironmentNode;
 struct Environment;
 typedef struct Environment Environment;
+struct EnvironmentPool;
+typedef struct EnvironmentPool EnvironmentPool;
 
 const char* const STRING_LITERAL_LIST[] = {
 {% for string_literal in string_literal_list %}
@@ -56,7 +58,7 @@ enum Type
 union Instance
 {
   bool boolean;
-  Object (*closure)(Environment*, size_t, Object*);
+  Object (*closure)(EnvironmentPool*, Environment*, size_t, Object*);
   int32_t integer;
   const char* string;
 };
@@ -86,19 +88,24 @@ struct EnvironmentNode
 
 struct Environment
 {
+  bool mark;
+  bool live;
+
   Environment* parent;
   EnvironmentNode* root;
 };
 
-Environment* Environment_construct(Environment* parent)
+void Environment_initialize(Environment* self, Environment* parent)
 {
-  Environment* result = malloc(sizeof(Environment));
-  result->parent = parent;
-  result->root = NULL;
-  return result;
+  self->parent = parent;
+  self->root = NULL;
+
+  // We are currently only ever initializing environments at the beginning of running functions, so
+  // for now at least we can assume that we want it to be live immediately.
+  self->live = true;
 }
 
-void Environment_destruct(Environment* self)
+void Environment_deinitialize(Environment* self)
 {
   EnvironmentNode* next;
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
@@ -106,7 +113,18 @@ void Environment_destruct(Environment* self)
     next = node->next;
     free(node);
   }
-  free(self);
+}
+
+void Environment_setLive(Environment* self, bool live)
+{
+  self->live = live;
+}
+
+void Environment_mark(Environment* self, bool mark)
+{
+  if(self == NULL) return;
+  self->mark = mark;
+  Environment_mark(self->parent, mark);
 }
 
 // This need not be thread safe because environments exist on one thread only
@@ -137,6 +155,123 @@ Object Environment_get(Environment* self, const char* const symbol)
 
   // TODO Handle symbol errors
   assert(false);
+}
+
+# define POOL_SIZE 64
+struct EnvironmentPool
+{
+  int8_t freeIndex;
+  bool allocatedFlags[POOL_SIZE];
+  Environment environments[POOL_SIZE];
+  EnvironmentPool* overflow;
+};
+
+EnvironmentPool* EnvironmentPool_construct();
+void EnvironmentPool_initialize(EnvironmentPool*);
+void EnvironmentPool_deinitialize(EnvironmentPool*);
+void EnvironmentPool_destruct(EnvironmentPool*);
+
+EnvironmentPool* EnvironmentPool_construct()
+{
+  EnvironmentPool* result = malloc(sizeof(EnvironmentPool));
+  EnvironmentPool_initialize(result);
+  return result;
+}
+
+void EnvironmentPool_initialize(EnvironmentPool* self)
+{
+  self->overflow = NULL;
+  self->freeIndex = 0;
+
+  for(size_t i = 0; i < POOL_SIZE; i++)
+  {
+    self->allocatedFlags[i] = false;
+    self->environments[i].live = false;
+  }
+}
+
+void EnvironmentPool_deinitialize(EnvironmentPool* self)
+{
+  // We can assume if this is being called, none of the Environments are live
+  for(int8_t i = 0; i < POOL_SIZE; i++)
+  {
+    if(self->allocatedFlags[i]) Environment_deinitialize(&(self->environments[i]));
+  }
+
+  EnvironmentPool_destruct(self->overflow);
+}
+
+void EnvironmentPool_destruct(EnvironmentPool* self)
+{
+  if(self == NULL) return;
+  EnvironmentPool_deinitialize(self);
+  free(self);
+}
+
+void EnvironmentPool_GC(EnvironmentPool* self)
+{
+  bool mark = !self->environments[0].mark;
+
+  for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
+  {
+    for(int8_t i = 0; i < POOL_SIZE; i++)
+    {
+      if(current->environments[i].live)
+      {
+        Environment_mark(&(current->environments[i]), mark);
+      }
+    }
+  }
+
+  // TODO We never free pools until the very end--we could free a pool if two pools are empty
+  for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
+  {
+    for(int8_t i = POOL_SIZE - 1; i >= 0; i--)
+    {
+      if(current->environments[i].mark != mark)
+      {
+        Environment_deinitialize(&(current->environments[i]));
+        current->freeIndex = i;
+      }
+    }
+  }
+}
+
+Environment* EnvironmentPool_allocate(EnvironmentPool* self)
+{
+  for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
+  {
+    for(; current->freeIndex < POOL_SIZE; current->freeIndex++)
+    {
+      if(!current->allocatedFlags[current->freeIndex])
+      {
+        current->allocatedFlags[current->freeIndex] = true;
+        return &(current->environments[current->freeIndex]);
+      }
+    }
+  }
+
+  EnvironmentPool_GC(self);
+
+  EnvironmentPool* previous;
+  for(EnvironmentPool* current = self; current != NULL; current = current->overflow)
+  {
+    for(; current->freeIndex < POOL_SIZE; current->freeIndex++)
+    {
+      if(!current->allocatedFlags[current->freeIndex])
+      {
+        current->allocatedFlags[current->freeIndex] = true;
+        return &(current->environments[current->freeIndex]);
+      }
+      else
+      {
+        previous = current;
+      }
+    }
+  }
+
+  previous->overflow = EnvironmentPool_construct();
+  return EnvironmentPool_allocate(previous->overflow);
 }
 
 Object integerLiteral(int32_t literal)
@@ -180,7 +315,7 @@ Object operator${{ id.name }}(Object left, Object right)
 {% endfor %}
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(Environment* parent, size_t argc, Object* args)
+Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
 {
   assert(argc == 2);
 
@@ -200,7 +335,7 @@ Object builtin$pow = { CLOSURE, (Instance)builtin$pow$implementation };
 {% endif %}
 
 {% if 'print' in builtins %}
-Object builtin$print$implementation(Environment* parent, size_t argc, Object* args)
+Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
 {
   for(size_t i = 0; i < argc; i++)
   {
@@ -233,16 +368,18 @@ Object builtin$print = { CLOSURE, (Instance)builtin$print$implementation };
 {% endif %}
 
 {% for function_definition in function_definition_list %}
-Object user${{function_definition.name}}$implementation(Environment* parent, size_t argc, Object* args)
+Object user${{function_definition.name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
 {
-  Environment* environment = Environment_construct(parent);
+  Environment* environment = EnvironmentPool_allocate(environmentPool);
+  Environment_initialize(environment, parent);
 
   {% for statement in function_definition.statement_list[:-1] %}
   {{ generate_statement(statement) }}
   {% endfor %}
 
   Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
-  Environment_destruct(environment);
+
+  Environment_setLive(environment, false);
   return result;
 }
 
@@ -251,7 +388,9 @@ Object user${{function_definition.name}} = { CLOSURE, (Instance)user${{function_
 
 int main(int argc, char** argv)
 {
-  Environment* environment = Environment_construct(NULL);
+  EnvironmentPool* environmentPool = EnvironmentPool_construct();
+  Environment* environment = EnvironmentPool_allocate(environmentPool);
+  Environment_initialize(environment, NULL);
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
@@ -262,7 +401,7 @@ int main(int argc, char** argv)
   {{ generate_statement(statement) }}
   {% endfor %}
 
-  Environment_destruct(environment);
-
+  Environment_setLive(environment, false);
+  EnvironmentPool_destruct(environmentPool);
   return 0;
 }
