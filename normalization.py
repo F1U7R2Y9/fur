@@ -67,6 +67,14 @@ NormalExpressionStatement = collections.namedtuple(
     ],
 )
 
+NormalAssignmentStatement = collections.namedtuple(
+    'NormalAssignmentStatement',
+    [
+        'target',
+        'expression',
+    ],
+)
+
 NormalIfElseStatement = collections.namedtuple(
     'NormalIfElseStatement',
     [
@@ -326,9 +334,20 @@ def normalize_function_definition_statement(counter, statement):
         ),
     )
 
+def normalize_assignment_statement(counter, statement):
+    counter, prestatements, normalized_expression = normalize_expression(counter, statement.expression)
+    return (
+        counter,
+        prestatements,
+        NormalAssignmentStatement(
+            target=statement.target,
+            expression=normalized_expression,
+        ),
+    )
+
 def normalize_statement(counter, statement):
     return {
-        parsing.FurAssignmentStatement: fake_normalization, # TODO unfake this
+        parsing.FurAssignmentStatement: normalize_assignment_statement,
         parsing.FurExpressionStatement: normalize_expression_statement,
         parsing.FurFunctionDefinitionStatement: normalize_function_definition_statement,
     }[type(statement)](counter, statement)

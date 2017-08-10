@@ -1,0 +1,15 @@
+def outer() do
+  hi = 'Hello, world\n'
+
+  def inner() do
+    hi
+  end
+
+  inner
+end
+
+get_greeting = outer()
+
+print(get_greeting())
+    
+
