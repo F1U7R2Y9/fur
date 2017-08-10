@@ -4,6 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Some terminology used in function names:
+ * - initialize: These functions take a pointer and potentially some other arguments, and use those
+ *   to initialize the value pointed to by self. Initialize functions DO NOT allocate the function,
+ *   so they can be used to initialize stack-allocated variables.
+ * - construct: This allocates a value for a pointer, initializes it, and returns it. This is for
+ *   heap-allocated values. It may be as simple as allocating the memory, calling an initialize, and
+ *   returning it.
+ * - deinitialize: These functions dereference or free any objects pointed to by the self pointer's
+ *   value, but they don't actually free the self pointer. This is useful for stack-allocated objects
+ *   which point to heap-allocated objects.
+ * - destruct: This dereferences or frees memory pointed to by the self argument, and all the
+ *   pointers on the self argument.
+ */
+
 {% for standard_library in standard_libraries %}
 #include <{{standard_library}}>
 {% endfor %}
@@ -72,44 +86,27 @@ struct EnvironmentNode
 
 struct Environment
 {
-  size_t referenceCount;
   Environment* parent;
   EnvironmentNode* root;
 };
 
-Environment* Environment_reference(Environment* self)
-{
-  if(self != NULL) self->referenceCount++;
-  return self;
-}
-
 Environment* Environment_construct(Environment* parent)
 {
   Environment* result = malloc(sizeof(Environment));
-  result->referenceCount = 1;
-  result->parent = Environment_reference(parent);
+  result->parent = parent;
   result->root = NULL;
   return result;
 }
 
 void Environment_destruct(Environment* self)
 {
-  if(self == NULL) return;
-
-  self->referenceCount--;
-
-  if(self->referenceCount == 0)
+  EnvironmentNode* next;
+  for(EnvironmentNode* node = self->root; node != NULL; node = next)
   {
-    EnvironmentNode* next;
-    for(EnvironmentNode* node = self->root; node != NULL; node = next)
-    {
-      // No objects are allocated on the heap (yet!) so we don't need to free anything else
-      next = node->next;
-      free(node);
-    }
-    Environment_destruct(self->parent);
-    free(self);
+    next = node->next;
+    free(node);
   }
+  free(self);
 }
 
 // This need not be thread safe because environments exist on one thread only
