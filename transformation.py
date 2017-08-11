@@ -125,6 +125,7 @@ CFunctionDefinition = collections.namedtuple(
     'CFunctionDefinition',
     [
         'name',
+        'argument_name_list',
         'statement_list',
     ],
 )
@@ -308,18 +309,8 @@ def transform_function_call_expression(accumulators, function_call):
     )
 
 def transform_expression_statement(accumulators, statement):
-    # TODO At some point we can verify that all expression types are supported and just call transform_expression
-    expression = {
-        parsing.FurFunctionCallExpression: transform_function_call_expression,
-        parsing.FurInfixExpression: transform_expression,
-        parsing.FurIntegerLiteralExpression: transform_expression,
-        parsing.FurSymbolExpression: transform_expression,
-        normalization.NormalFunctionCallExpression: transform_function_call_expression,
-        normalization.NormalVariableExpression: transform_expression,
-    }[type(statement.expression)](accumulators, statement.expression)
-
     return CExpressionStatement(
-        expression=expression,
+        expression=transform_expression(accumulators, statement.expression),
     )
 
 def transform_if_else_statement(accumulators, statement):
@@ -352,8 +343,10 @@ def transform_function_definition_statement(accumulators, statement):
     if any(fd.name == statement.name for fd in accumulators.function_definition_list):
         raise Exception('A function with name "{}" already exists'.format(statement.name))
 
+    # TODO Add argument names to the symbol table
     accumulators.function_definition_list.append(CFunctionDefinition(
         name=statement.name,
+        argument_name_list=statement.argument_name_list,
         statement_list=tuple(transform_statement(accumulators, s) for s in statement.statement_list)
     ))
 

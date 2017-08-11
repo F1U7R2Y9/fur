@@ -88,6 +88,7 @@ NormalFunctionDefinitionStatement = collections.namedtuple(
     'NormalFunctionDefinitionStatement',
     [
         'name',
+        'argument_name_list',
         'statement_list',
     ],
 )
@@ -330,6 +331,7 @@ def normalize_function_definition_statement(counter, statement):
         (),
         NormalFunctionDefinitionStatement(
             name=statement.name,
+            argument_name_list=statement.argument_name_list,
             statement_list=normalize_statement_list(statement.statement_list),
         ),
     )

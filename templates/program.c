@@ -384,6 +384,11 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
         fputs(output.instance.boolean ? "true" : "false", stdout);
         break;
 
+      case CLOSURE:
+        // TODO Print something better
+        printf("<Closure>");
+        break;
+
       case INTEGER:
         printf("%" PRId32, output.instance.integer);
         break;
@@ -408,8 +413,14 @@ Object builtin$print = { CLOSURE, (Instance)(Closure){ NULL, builtin$print$imple
 {% for function_definition in function_definition_list %}
 Object user${{function_definition.name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
 {
+  assert(argc == {{ function_definition.argument_name_list|length }});
+
   Environment* environment = EnvironmentPool_allocate(environmentPool);
   Environment_initialize(environment, parent);
+
+  {% for argument_name in function_definition.argument_name_list %}
+  Environment_set(environment, "{{ argument_name }}", args[{{ loop.index0 }}]);
+  {% endfor %}
 
   {% for statement in function_definition.statement_list[:-1] %}
   {{ generate_statement(statement) }}
