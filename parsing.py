@@ -64,14 +64,6 @@ FurNegationExpression = collections.namedtuple(
     ],
 )
 
-# TODO We don't need to wrap this type
-FurParenthesizedExpression = collections.namedtuple(
-    'FurParenthesizedExpression',
-    [
-        'internal',
-    ],
-)
-
 FurInfixExpression = collections.namedtuple(
     'FurInfixExpression',
     [
@@ -124,7 +116,7 @@ def _parenthesized_expression_parser(index, tokens):
             tokens[index].match,
         ))
 
-    return True, index, FurParenthesizedExpression(internal=internal)
+    return True, index, internal
 
 def _negation_expression_parser(index, tokens):
     failure = (False, index, None)

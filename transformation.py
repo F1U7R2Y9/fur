@@ -254,10 +254,6 @@ def transform_infix_expression(accumulators, expression):
 def transform_integer_literal_expression(accumulators, expression):
     return CIntegerLiteral(value=expression.value)
 
-def transform_parenthesized_expression(accumulators, expression):
-    # Parentheses can be removed because everything in the C output is explicitly parenthesized
-    return transform_expression(accumulators, expression.internal)
-
 def transform_negation_expression(accumulators, expression):
     return CNegationExpression(
         value=transform_expression(accumulators, expression.internal_expression),
@@ -270,7 +266,6 @@ def transform_expression(accumulators, expression):
         parsing.FurInfixExpression: transform_infix_expression,
         parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
         parsing.FurNegationExpression: transform_negation_expression,
-        parsing.FurParenthesizedExpression: transform_parenthesized_expression,
         parsing.FurStringLiteralExpression: transform_string_literal,
         parsing.FurSymbolExpression: transform_symbol_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,

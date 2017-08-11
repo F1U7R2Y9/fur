@@ -294,9 +294,6 @@ def normalize_negation_expression(counter, expression):
         NormalNegationExpression(internal_expression=NormalVariableExpression(variable=internal_variable)),
     )
 
-def normalize_parenthesized_expression(counter, expression):
-    return normalize_expression(counter, expression.internal)
-
 def normalize_expression(counter, expression):
     return {
         NormalInfixExpression: fake_normalization,
@@ -305,7 +302,6 @@ def normalize_expression(counter, expression):
         parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: fake_normalization,
         parsing.FurNegationExpression: normalize_negation_expression,
-        parsing.FurParenthesizedExpression: normalize_parenthesized_expression,
         parsing.FurStringLiteralExpression: fake_normalization,
         parsing.FurSymbolExpression: fake_normalization,
     }[type(expression)](counter, expression)
