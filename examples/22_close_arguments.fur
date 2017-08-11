@@ -1,0 +1,13 @@
+def make_incrementer(increment_amount) do
+  def result(i) do
+    increment_amount + i
+  end
+
+  result
+end
+
+increment_by_one = make_incrementer(1)
+increment_by_two = make_incrementer(2)
+
+print(increment_by_one(41), '\n')
+print(increment_by_two(40), '\n')
