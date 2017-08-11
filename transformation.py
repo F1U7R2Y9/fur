@@ -125,6 +125,7 @@ CFunctionDefinition = collections.namedtuple(
     'CFunctionDefinition',
     [
         'name',
+        'argument_name_list',
         'statement_list',
     ],
 )
@@ -167,12 +168,15 @@ def transform_symbol_expression(accumulators, expression):
     if expression.value in ['true', 'false']:
         return CConstantExpression(value=expression.value)
 
-    if expression.value not in accumulators.symbol_list:
-        symbol_list.append(expression.value)
+    try:
+        symbol_list_index = accumulators.symbol_list.index(expression.value)
+    except ValueError:
+        symbol_list_index = len(accumulators.symbol_list)
+        accumulators.symbol_list.append(expression.value)
 
     return CSymbolExpression(
         symbol=expression.value,
-        symbol_list_index=accumulators.symbol_list.index(expression.value),
+        symbol_list_index=symbol_list_index,
     )
 
 CInfixDeclaration = collections.namedtuple(
@@ -277,12 +281,15 @@ def transform_expression(accumulators, expression):
 
 def transform_symbol_assignment_statement(accumulators, assignment_statement):
     # TODO Check that target is not a builtin
-    if assignment_statement.target not in accumulators.symbol_list:
+    try:
+        symbol_list_index = accumulators.symbol_list.index(assignment_statement.target)
+    except ValueError:
+        symbol_list_index = len(accumulators.symbol_list)
         accumulators.symbol_list.append(assignment_statement.target)
 
     return CSymbolAssignmentStatement(
         target=assignment_statement.target,
-        target_symbol_list_index=accumulators.symbol_list.index(assignment_statement.target),
+        target_symbol_list_index=symbol_list_index,
         expression=transform_expression(
             accumulators,
             assignment_statement.expression,
@@ -302,18 +309,8 @@ def transform_function_call_expression(accumulators, function_call):
     )
 
 def transform_expression_statement(accumulators, statement):
-    # TODO At some point we can verify that all expression types are supported and just call transform_expression
-    expression = {
-        parsing.FurFunctionCallExpression: transform_function_call_expression,
-        parsing.FurInfixExpression: transform_expression,
-        parsing.FurIntegerLiteralExpression: transform_expression,
-        parsing.FurSymbolExpression: transform_expression,
-        normalization.NormalFunctionCallExpression: transform_function_call_expression,
-        normalization.NormalVariableExpression: transform_expression,
-    }[type(statement.expression)](accumulators, statement.expression)
-
     return CExpressionStatement(
-        expression=expression,
+        expression=transform_expression(accumulators, statement.expression),
     )
 
 def transform_if_else_statement(accumulators, statement):
@@ -346,8 +343,10 @@ def transform_function_definition_statement(accumulators, statement):
     if any(fd.name == statement.name for fd in accumulators.function_definition_list):
         raise Exception('A function with name "{}" already exists'.format(statement.name))
 
+    # TODO Add argument names to the symbol table
     accumulators.function_definition_list.append(CFunctionDefinition(
         name=statement.name,
+        argument_name_list=statement.argument_name_list,
         statement_list=tuple(transform_statement(accumulators, s) for s in statement.statement_list)
     ))
 
@@ -355,9 +354,9 @@ def transform_function_definition_statement(accumulators, statement):
 
 def transform_statement(accumulators, statement):
     return {
-        parsing.FurAssignmentStatement: transform_symbol_assignment_statement,
         parsing.FurExpressionStatement: transform_expression_statement,
         normalization.NormalArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
+        normalization.NormalAssignmentStatement: transform_symbol_assignment_statement,
         normalization.NormalExpressionStatement: transform_expression_statement,
         normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
         normalization.NormalIfElseStatement: transform_if_else_statement,

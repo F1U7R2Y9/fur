@@ -58,6 +58,12 @@ def tokenize(source):
             index += 1
             continue
 
+        if source[index] == '#':
+            while index < len(source) and source[index] != '\n':
+                index += 1
+
+            continue
+
         success = False
 
         for matcher in _TOKEN_MATCHERS:

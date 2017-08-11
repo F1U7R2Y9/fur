@@ -212,30 +212,35 @@ def _or_level_expression_parser(index, tokens):
         'or_level',
     )(index, tokens)
 
-def _comma_separated_list_parser(index, tokens):
-    start_index = index
+def _comma_separated_list_parser(subparser):
+    def result_parser(index, tokens):
+        start_index = index
 
-    expressions = []
+        items = []
 
-    success, index, expression = _expression_parser(index, tokens)
-
-    if success:
-        expressions.append(expression)
-    else:
-        return (True, start_index, ())
-
-    while success and index < len(tokens) and tokens[index].type == 'comma':
-        success = False
-
-        if index + 1 < len(tokens):
-            success, try_index, expression = _expression_parser(index + 1, tokens)
+        success, index, item = subparser(index, tokens)
 
         if success:
-            expressions.append(expression)
-            index = try_index
+            items.append(item)
+        else:
+            return (True, start_index, ())
 
-    return True, index, tuple(expressions)
+        while success and index < len(tokens) and tokens[index].type == 'comma':
+            success = False
 
+            if index + 1 < len(tokens):
+                success, try_index, item = subparser(index + 1, tokens)
+
+            if success:
+                items.append(item)
+                index = try_index
+
+        return True, index, tuple(items)
+
+    return result_parser
+
+def _comma_separated_expression_list_parser(index, tokens):
+    return _comma_separated_list_parser(_expression_parser)(index, tokens)
 
 FurFunctionCallExpression = collections.namedtuple(
     'FurFunctionCallExpression',
@@ -264,6 +269,7 @@ FurFunctionDefinitionStatement = collections.namedtuple(
     'FurFunctionDefinitionStatement',
     [
         'name',
+        'argument_name_list',
         'statement_list',
     ],
 )
@@ -288,7 +294,7 @@ def _function_call_expression_parser(index, tokens):
         return failure
     index += 1
 
-    success, index, arguments = _comma_separated_list_parser(index, tokens)
+    success, index, arguments = _comma_separated_expression_list_parser(index, tokens)
 
     if not success:
         return failure
@@ -363,6 +369,11 @@ def _function_definition_statement_parser(index, tokens):
             tokens[index].line,
         ))
 
+    success, index, argument_name_list = _comma_separated_list_parser(_symbol_expression_parser)(
+        index,
+        tokens,
+    )
+
     if tokens[index].type == 'close_parenthese':
         index += 1
     else:
@@ -385,7 +396,11 @@ def _function_definition_statement_parser(index, tokens):
     else:
         return failure
 
-    return True, index, FurFunctionDefinitionStatement(name=name, statement_list=statement_list)
+    return True, index, FurFunctionDefinitionStatement(
+        name=name,
+        argument_name_list=tuple(an.value for an in argument_name_list),
+        statement_list=statement_list,
+    )
 
 def _statement_parser(index, tokens):
     _, index, _ = consume_newlines(index, tokens)

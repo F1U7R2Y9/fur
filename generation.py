@@ -22,10 +22,10 @@ CONSTANT_EXPRESSION_MAPPING = {
 def generate_constant_expression(c_constant_expression):
     return CONSTANT_EXPRESSION_MAPPING[c_constant_expression.value]
 
-def generate_symbol_expression(c_symbol_expression):
+def generate_symbol_expression(symbol_expression):
     return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
-        c_symbol_expression.symbol_list_index,
-        c_symbol_expression.symbol,
+        symbol_expression.symbol_list_index,
+        symbol_expression.symbol,
     )
 
 def generate_variable_expression(expression):
@@ -65,8 +65,13 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
-    return 'Environment_get(environment, "{}").instance.closure(environment, {}, {})'.format(
+    # TODO This gets called twice, which is really inefficient--normalization would also allow other clauses besides a variable reference
+    get_closure_clause = 'Environment_get(environment, "{}").instance.closure'.format(
         function_call.name,
+    )
+    return '{}.call(environmentPool, {}.closed, {}, {})'.format(
+        get_closure_clause,
+        get_closure_clause,
         function_call.argument_count,
         # TODO This is just a single item containing a reference to the items list--make that clearer
         generate_expression(function_call.argument_items),
@@ -80,11 +85,11 @@ def generate_expression_statement(statement):
     # TODO Do we need to garbage collect the results of arbitrary statements?
     return '{};'.format(generate_expression(statement.expression))
 
-def generate_symbol_assignment_statement(c_assignment_statement):
+def generate_symbol_assignment_statement(statement):
     return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(
-        c_assignment_statement.target_symbol_list_index,
-        c_assignment_statement.target,
-        generate_expression(c_assignment_statement.expression),
+        statement.target_symbol_list_index,
+        statement.target,
+        generate_expression(statement.expression),
     )
 
 def generate_array_variable_initialization_statement(statement):
@@ -142,7 +147,7 @@ def generate_if_else_statement(statement):
     return generated_if_clause + generated_if_statements + generated_else_statements
 
 def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", user${});'.format(statement.name, statement.name)
+    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(statement.name, statement.name)
 
 def generate_statement(statement):
     return {
