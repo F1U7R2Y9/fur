@@ -96,27 +96,33 @@ def _symbol_expression_parser(index, tokens):
 
     return (False, index, None)
 
+def _parenthese_wrapped_parser(internal_parser):
+    def result_parser(index, tokens):
+        failure = (False, index, None)
+
+        if tokens[index].type == 'open_parenthese':
+            index += 1
+        else:
+            return failure
+
+        success, index, internal = internal_parser(index, tokens)
+        if not success:
+            return failure
+
+        if tokens[index].type == 'close_parenthese':
+            index += 1
+        else:
+            raise Exception('Expected ")" on line {}, found "{}"'.format(
+                tokens[index].line,
+                tokens[index].match,
+            ))
+
+        return True, index, internal
+
+    return result_parser
+
 def _parenthesized_expression_parser(index, tokens):
-    failure = (False, index, None)
-
-    if tokens[index].type == 'open_parenthese':
-        index += 1
-    else:
-        return failure
-
-    success, index, internal = _expression_parser(index, tokens)
-    if not success:
-        return failure
-
-    if tokens[index].type == 'close_parenthese':
-        index += 1
-    else:
-        raise Exception('Expected ")" on line {}, found "{}"'.format(
-            tokens[index].line,
-            tokens[index].match,
-        ))
-
-    return True, index, internal
+    return _parenthese_wrapped_parser(_expression_parser)(index, tokens)
 
 def _negation_expression_parser(index, tokens):
     failure = (False, index, None)
@@ -274,8 +280,6 @@ FurProgram = collections.namedtuple(
 )
 
 def _function_call_expression_parser(index, tokens):
-    # TODO Allow function calls as the source of the function. This requires a
-    # left-recursive parser, however.
     failure = (False, index, None)
 
     # We have to be careful what expressions we add here. Otherwise expressions
@@ -288,23 +292,28 @@ def _function_call_expression_parser(index, tokens):
     if not success:
         return failure
 
-    if tokens[index].type != 'open_parenthese':
-        return failure
-    index += 1
-
-    success, index, arguments = _comma_separated_expression_list_parser(index, tokens)
+    success, index, arguments = _parenthese_wrapped_parser(_comma_separated_expression_list_parser)(
+        index,
+        tokens,
+    )
 
     if not success:
         return failure
 
-    if tokens[index].type != 'close_parenthese':
-        raise Exception('Expected ")", found "{}" on line {}'.format(
-            tokens[index].match,
-            tokens[index].line,
-        ))
-    index += 1
+    while success and index < len(tokens):
+        # "function" is actually the full function call if the next parse attempt doesn't succeed
+        # We can't give this a better name without a bunch of checks, however.
+        function = FurFunctionCallExpression(
+            function=function,
+            arguments=arguments,
+        )
 
-    return True, index, FurFunctionCallExpression(function=function, arguments=arguments)
+        success, index, arguments = _parenthese_wrapped_parser(_comma_separated_expression_list_parser)(
+            index,
+            tokens,
+        )
+
+    return True, index, function
 
 _expression_parser = _or_level_expression_parser
 
