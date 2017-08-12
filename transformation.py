@@ -65,6 +65,7 @@ CFunctionCallExpression = collections.namedtuple(
     ],
 )
 
+# TODO We are currently not changing variables, just preventing them from being accessed.
 CSymbolAssignmentStatement = collections.namedtuple(
     'CSymbolAssignmentStatement',
     [
@@ -121,6 +122,8 @@ CFunctionDeclaration = collections.namedtuple(
     ],
 )
 
+# TODO If a function definition doesn't end with an expression, we have issues currently because we try to return statement.
+# TODO Closures currently wrap entire defining environment, even symbols that are not used, which makes garbage collection ineffective.
 CFunctionDefinition = collections.namedtuple(
     'CFunctionDefinition',
     [
