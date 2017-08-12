@@ -327,18 +327,28 @@ def _expression_statement_parser(index, tokens):
 
     return (True, index, FurExpressionStatement(expression=expression))
 
+BUILTINS = {'print', 'pow'}
+
 def _assignment_statement_parser(index, tokens):
-    # TODO Use a FurSymbolExpression for the target? Maybe this is actually not a good idea
     failure = (False, index, None)
 
-    if tokens[index].type != 'symbol':
-        return failure
-    target = tokens[index].match
-    index += 1
+    if tokens[index].type == 'symbol':
+        target = tokens[index].match
+        target_assignment_line = tokens[index].line
 
-    if tokens[index].type != 'assignment_operator':
+        index += 1
+    else:
         return failure
-    assignment_operator_index = index
+
+
+    if tokens[index].type == 'assignment_operator':
+        if target in BUILTINS:
+            raise Exception(
+                'Trying to assign to builtin "{}" on line {}'.format(target, target_assignment_line),
+            )
+        assignment_operator_index = index
+    else:
+        return failure
 
     success, index, expression = _expression_parser(index + 1, tokens)
 
