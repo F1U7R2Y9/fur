@@ -1,7 +1,7 @@
 import collections
 
 import normalization
-import parsing
+import parsing # TODO Remove this import, as we should be normalizing everything before it gets here
 
 CIntegerLiteral = collections.namedtuple(
     'CIntegerLiteral',
@@ -165,17 +165,17 @@ def transform_string_literal_expression(accumulators, expression):
     return CStringLiteral(index=index, value=value)
 
 def transform_symbol_expression(accumulators, expression):
-    if expression.value in ['true', 'false']:
-        return CConstantExpression(value=expression.value)
+    if expression.symbol in ['true', 'false']:
+        return CConstantExpression(value=expression.symbol)
 
     try:
-        symbol_list_index = accumulators.symbol_list.index(expression.value)
+        symbol_list_index = accumulators.symbol_list.index(expression.symbol)
     except ValueError:
         symbol_list_index = len(accumulators.symbol_list)
-        accumulators.symbol_list.append(expression.value)
+        accumulators.symbol_list.append(expression.symbol)
 
     return CSymbolExpression(
-        symbol=expression.value,
+        symbol=expression.symbol,
         symbol_list_index=symbol_list_index,
     )
 
@@ -267,12 +267,12 @@ def transform_expression(accumulators, expression):
         parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
         parsing.FurNegationExpression: transform_negation_expression,
         parsing.FurStringLiteralExpression: transform_string_literal_expression,
-        parsing.FurSymbolExpression: transform_symbol_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
         normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
         normalization.NormalNegationExpression: transform_negation_expression,
         normalization.NormalStringLiteralExpression: transform_string_literal_expression,
+        normalization.NormalSymbolExpression: transform_symbol_expression,
         normalization.NormalVariableExpression: transform_variable_expression,
     }[type(expression)](accumulators, expression)
 
@@ -294,11 +294,11 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
     )
 
 def transform_function_call_expression(accumulators, function_call):
-    if isinstance(function_call.function, parsing.FurSymbolExpression):
+    if isinstance(function_call.function, normalization.NormalSymbolExpression):
         # TODO Move this check to transformation of symbol expressions so we can have builtins that aren't functions
-        if function_call.function.value in BUILTINS.keys():
+        if function_call.function.symbol in BUILTINS.keys():
             # TODO Check that the builtin is actually callable
-            accumulators.builtin_set.add(function_call.function.value)
+            accumulators.builtin_set.add(function_call.function.symbol)
 
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(

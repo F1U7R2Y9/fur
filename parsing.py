@@ -53,7 +53,7 @@ FurStringLiteralExpression = collections.namedtuple(
 FurSymbolExpression = collections.namedtuple(
     'FurSymbolExpression',
     [
-        'value',
+        'symbol',
     ],
 )
 
@@ -92,7 +92,7 @@ def _string_literal_expression_parser(index, tokens):
 
 def _symbol_expression_parser(index, tokens):
     if tokens[index].type == 'symbol':
-        return (True, index + 1, FurSymbolExpression(value=tokens[index].match))
+        return (True, index + 1, FurSymbolExpression(symbol=tokens[index].match))
 
     return (False, index, None)
 
@@ -415,7 +415,7 @@ def _function_definition_statement_parser(index, tokens):
 
     return True, index, FurFunctionDefinitionStatement(
         name=name,
-        argument_name_list=tuple(an.value for an in argument_name_list),
+    argument_name_list=tuple(an.symbol for an in argument_name_list),
         statement_list=statement_list,
     )
 
