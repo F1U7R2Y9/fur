@@ -126,15 +126,27 @@ def fake_normalization(counter, thing):
 
 def normalize_integer_literal_expression(counter, expression):
     # TODO Store this in a C variable
-    return (counter, (), NormalIntegerLiteralExpression(integer=expression.integer))
+    return (
+        counter,
+        (),
+        NormalIntegerLiteralExpression(integer=expression.integer),
+    )
 
 def normalize_string_literal_expression(counter, expression):
     # TODO Store this in a C variable
-    return (counter, (), NormalStringLiteralExpression(string=expression.string))
+    return (
+        counter,
+        (),
+        NormalStringLiteralExpression(string=expression.string),
+    )
 
 def normalize_symbol_expression(counter, expression):
     # TODO Store this in a C variable
-    return (counter, (), NormalSymbolExpression(symbol=expression.symbol))
+    return (
+        counter,
+        (),
+        NormalSymbolExpression(symbol=expression.symbol),
+    )
 
 def normalize_function_call_expression(counter, expression):
     assert isinstance(expression, parsing.FurFunctionCallExpression)
@@ -208,7 +220,7 @@ def normalize_basic_infix_operation(counter, expression):
         counter,
         left_prestatements + right_prestatements + root_prestatements,
         NormalInfixExpression(
-            order=expression.order, # TODO Do we need this?
+            order=expression.order,
             operator=expression.operator,
             left=NormalVariableExpression(variable=left_variable),
             right=NormalVariableExpression(variable=right_variable),
@@ -244,9 +256,8 @@ def normalize_comparison_expression(counter, expression):
     counter, result_prestatements, result_expression = (
         counter,
         left_prestatements + right_prestatements + root_prestatements,
-        # TODO Implement short-circuiting
         NormalInfixExpression(
-            order=expression.order, # TODO Do we need this?
+            order=expression.order,
             operator=expression.operator,
             left=NormalVariableExpression(variable=left_variable),
             right=NormalVariableExpression(variable=right_variable),
@@ -347,13 +358,7 @@ def normalize_expression(counter, expression):
     }[type(expression)](counter, expression)
 
 def normalize_expression_statement(counter, statement):
-    # TODO Verify all expression types are supported and just call normalize_expression
-    counter, prestatements, normalized = {
-        parsing.FurFunctionCallExpression: normalize_function_call_expression,
-        parsing.FurSymbolExpression: normalize_expression,
-        parsing.FurInfixExpression: normalize_expression,
-        parsing.FurIntegerLiteralExpression: normalize_expression,
-    }[type(statement.expression)](counter, statement.expression)
+    counter, prestatements, normalized = normalize_expression(counter, statement.expression)
 
     return (
         counter,
