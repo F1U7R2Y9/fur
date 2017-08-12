@@ -153,8 +153,8 @@ BUILTINS = {
 def transform_variable_expression(accumulators, expression):
     return CVariableExpression(variable=expression.variable)
 
-def transform_string_literal(accumulators, expression):
-    value = expression.value
+def transform_string_literal_expression(accumulators, expression):
+    value = expression.string
 
     try:
         index = accumulators.string_literal_list.index(value)
@@ -252,7 +252,7 @@ def transform_infix_expression(accumulators, expression):
     )
 
 def transform_integer_literal_expression(accumulators, expression):
-    return CIntegerLiteral(value=expression.value)
+    return CIntegerLiteral(value=expression.integer)
 
 def transform_negation_expression(accumulators, expression):
     return CNegationExpression(
@@ -266,11 +266,13 @@ def transform_expression(accumulators, expression):
         parsing.FurInfixExpression: transform_infix_expression,
         parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
         parsing.FurNegationExpression: transform_negation_expression,
-        parsing.FurStringLiteralExpression: transform_string_literal,
+        parsing.FurStringLiteralExpression: transform_string_literal_expression,
         parsing.FurSymbolExpression: transform_symbol_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
+        normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
         normalization.NormalNegationExpression: transform_negation_expression,
+        normalization.NormalStringLiteralExpression: transform_string_literal_expression,
         normalization.NormalVariableExpression: transform_variable_expression,
     }[type(expression)](accumulators, expression)
 

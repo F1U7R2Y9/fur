@@ -10,6 +10,20 @@ NormalVariableExpression = collections.namedtuple(
     ],
 )
 
+NormalIntegerLiteralExpression = collections.namedtuple(
+    'NormalIntegerLiteralExpression',
+    [
+        'integer',
+    ],
+)
+
+NormalStringLiteralExpression = collections.namedtuple(
+    'NormalStringLiteralExpression',
+    [
+        'string',
+    ],
+)
+
 NormalNegationExpression = collections.namedtuple(
     'NormalNegationExpression',
     [
@@ -103,6 +117,12 @@ NormalProgram = collections.namedtuple(
 # TODO Get rid of this
 def fake_normalization(counter, thing):
     return (counter, (), thing)
+
+def normalize_integer_literal_expression(counter, expression):
+    return (counter, (), NormalIntegerLiteralExpression(integer=expression.integer))
+
+def normalize_string_literal_expression(counter, expression):
+    return (counter, (), NormalStringLiteralExpression(string=expression.string))
 
 def normalize_function_call_expression(counter, expression):
     assert isinstance(expression, parsing.FurFunctionCallExpression)
@@ -308,9 +328,9 @@ def normalize_expression(counter, expression):
         NormalVariableExpression: fake_normalization,
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
-        parsing.FurIntegerLiteralExpression: fake_normalization,
+        parsing.FurIntegerLiteralExpression: normalize_integer_literal_expression,
         parsing.FurNegationExpression: normalize_negation_expression,
-        parsing.FurStringLiteralExpression: fake_normalization,
+        parsing.FurStringLiteralExpression: normalize_string_literal_expression,
         parsing.FurSymbolExpression: fake_normalization,
     }[type(expression)](counter, expression)
 

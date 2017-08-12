@@ -39,14 +39,14 @@ def _zero_or_more_parser(formatter, parser):
 FurIntegerLiteralExpression = collections.namedtuple(
     'FurIntegerLiteralExpression',
     [
-        'value',
+        'integer',
     ],
 )
 
 FurStringLiteralExpression = collections.namedtuple(
     'FurStringLiteralExpression',
     [
-        'value',
+        'string',
     ],
 )
 
@@ -82,11 +82,11 @@ def _integer_literal_expression_parser(index, tokens):
     value = int(tokens[index].match)
     index += 1
 
-    return True, index, FurIntegerLiteralExpression(value=value)
+    return True, index, FurIntegerLiteralExpression(integer=value)
 
 def _string_literal_expression_parser(index, tokens):
     if tokens[index].type == 'single_quoted_string_literal':
-        return (True, index + 1, FurStringLiteralExpression(value=tokens[index].match[1:-1]))
+        return (True, index + 1, FurStringLiteralExpression(string=tokens[index].match[1:-1]))
 
     return (False, index, None)
 
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                 (
                     True,
                     1,
-                    FurStringLiteralExpression(value='Hello, world'),
+                    FurStringLiteralExpression(string='Hello, world'),
                 ),
             )
 
@@ -475,7 +475,7 @@ if __name__ == '__main__':
                     4,
                     FurFunctionCallExpression(
                         name='print',
-                        arguments=(FurStringLiteralExpression(value='Hello, world'),),
+                        arguments=(FurStringLiteralExpression(string='Hello, world'),),
                     ),
                 ),
             )
