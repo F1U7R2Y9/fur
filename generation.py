@@ -66,10 +66,10 @@ def generate_negation_expression(c_negation_expression):
 
 def generate_function_call(function_call):
     # TODO This gets called twice, which is really inefficient--normalization would also allow other clauses besides a variable reference
-    get_closure_clause = 'Environment_get(environment, "{}").instance.closure'.format(
-        function_call.name,
-    )
-    return '{}.call(environmentPool, {}.closed, {}, {})'.format(
+    # TODO This should no longer be called "name", as it can be an expression of a few types
+    # TODO Check the type of the things being called
+    get_closure_clause = generate_expression(function_call.name)
+    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, {})'.format(
         get_closure_clause,
         get_closure_clause,
         function_call.argument_count,

@@ -1,0 +1,10 @@
+def make_incrementer(increment_amount) do
+  def result(i) do
+    increment_amount + i
+  end
+
+  result
+end
+
+print((make_incrementer(1))(41), '\n')
+print((make_incrementer(2))(40), '\n')

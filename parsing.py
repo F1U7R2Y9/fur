@@ -274,10 +274,16 @@ FurProgram = collections.namedtuple(
 )
 
 def _function_call_expression_parser(index, tokens):
-    # TODO Use a FurSymbolExpression for the name
+    # TODO Allow function calls as the source of the function. This requires a
+    # left-recursive parser, however.
     failure = (False, index, None)
 
-    success, index, function = _symbol_expression_parser(index, tokens)
+    # We have to be careful what expressions we add here. Otherwise expressions
+    # like "a + b()" become ambiguous to the parser.
+    success, index, function = _or_parser(
+        _symbol_expression_parser,
+        _parenthesized_expression_parser,
+    )(index, tokens)
 
     if not success:
         return failure

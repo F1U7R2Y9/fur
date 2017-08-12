@@ -134,11 +134,19 @@ def normalize_function_call_expression(counter, expression):
         items=tuple(arguments),
     ))
 
+    counter, function_prestatements, function_expression = normalize_expression(
+        counter,
+        expression.function,
+    )
+
+    for ps in function_prestatements:
+        prestatements.append(ps)
+
     return (
         counter,
         tuple(prestatements),
         NormalFunctionCallExpression(
-            function=expression.function, # TODO Normalize the function
+            function=function_expression,
             argument_count=len(arguments),
             argument_items=NormalVariableExpression(variable=arguments_variable),
         ),

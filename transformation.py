@@ -292,13 +292,15 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
     )
 
 def transform_function_call_expression(accumulators, function_call):
-    if function_call.function.value in BUILTINS.keys():
-        # TODO Check that the builtin is actually callable
-        accumulators.builtin_set.add(function_call.function.value)
+    if isinstance(function_call.function, parsing.FurSymbolExpression):
+        # TODO Move this check to transformation of symbol expressions so we can have builtins that aren't functions
+        if function_call.function.value in BUILTINS.keys():
+            # TODO Check that the builtin is actually callable
+            accumulators.builtin_set.add(function_call.function.value)
 
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(
-        name=function_call.function.value,
+        name=transform_expression(accumulators, function_call.function),
         argument_count=function_call.argument_count,
         argument_items=transform_expression(accumulators, function_call.argument_items),
     )
