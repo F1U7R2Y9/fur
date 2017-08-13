@@ -14,14 +14,6 @@ def generate_integer_literal(c_integer_literal):
 def generate_string_literal(c_string_literal):
     return 'stringLiteral(STRING_LITERAL_LIST[{}])'.format(c_string_literal.index)
 
-CONSTANT_EXPRESSION_MAPPING = {
-    'true':     'TRUE',
-    'false':    'FALSE',
-}
-
-def generate_constant_expression(c_constant_expression):
-    return CONSTANT_EXPRESSION_MAPPING[c_constant_expression.value]
-
 def generate_symbol_expression(symbol_expression):
     return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
         symbol_expression.symbol_list_index,
@@ -41,7 +33,6 @@ def generate_expression(expression):
     LITERAL_TYPE_MAPPING = {
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CStringLiteral: generate_string_literal,
-        transformation.CConstantExpression: generate_constant_expression,
         transformation.CSymbolExpression: generate_symbol_expression,
     }
 
@@ -78,10 +69,6 @@ def generate_function_call(function_call):
     )
 
 def generate_expression_statement(statement):
-    # TODO Do this at an earlier pass
-    if isinstance(statement.expression, transformation.CVariableExpression):
-        return '';
-
     # TODO Do we need to garbage collect the results of arbitrary statements?
     return '{};'.format(generate_expression(statement.expression))
 
@@ -160,14 +147,22 @@ def generate_statement(statement):
         transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)
 
+def generate_function_definition(definition):
+    template = ENV.get_template('function_definition.c')
+    return template.render(
+        name=definition.name,
+        argument_name_list=definition.argument_name_list,
+        statement_list=list(generate_statement(s) for s in definition.statement_list),
+    )
+    return definition
+
 def generate(program):
     template = ENV.get_template('program.c')
     return template.render(
         builtins=tuple(sorted(program.builtin_set)),
-        function_definition_list=program.function_definition_list,
-        generate_statement=generate_statement,
+        function_definition_list=list(generate_function_definition(fd) for fd in program.function_definition_list),
         infix_declarations=program.operator_declarations,
-        statements=program.statements,
+        statements=list(generate_statement(s) for s in program.statements),
         standard_libraries=list(sorted(program.standard_libraries)),
         string_literal_list=program.string_literal_list,
         symbol_list=program.symbol_list,

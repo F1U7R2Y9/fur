@@ -18,13 +18,6 @@ CStringLiteral = collections.namedtuple(
     ],
 )
 
-CConstantExpression = collections.namedtuple(
-    'CConstantExpression',
-    [
-        'value'
-    ],
-)
-
 CVariableExpression = collections.namedtuple(
     'CVariableExpression',
     [
@@ -168,8 +161,8 @@ def transform_string_literal_expression(accumulators, expression):
     return CStringLiteral(index=index, value=value)
 
 def transform_symbol_expression(accumulators, expression):
-    if expression.symbol in ['true', 'false']:
-        return CConstantExpression(value=expression.symbol)
+    if expression.symbol in BUILTINS:
+        accumulators.builtin_set.add(expression.symbol)
 
     try:
         symbol_list_index = accumulators.symbol_list.index(expression.symbol)
@@ -297,12 +290,6 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
     )
 
 def transform_function_call_expression(accumulators, function_call):
-    if isinstance(function_call.function, normalization.NormalSymbolExpression):
-        # TODO Move this check to transformation of symbol expressions so we can have builtins that aren't functions
-        if function_call.function.symbol in BUILTINS.keys():
-            # TODO Check that the builtin is actually callable
-            accumulators.builtin_set.add(function_call.function.symbol)
-
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(
         name=transform_expression(accumulators, function_call.function),
@@ -390,6 +377,11 @@ def transform(program):
     statement_list = [
         transform_statement(accumulators, statement) for statement in program.statement_list
     ]
+
+    # This prevents warnings about normalized variables being entire C statements
+    last_statement = statement_list[-1]
+    if isinstance(last_statement, normalization.NormalExpressionStatement) and isinstance(last_statement.expression, normalization.NormalVariableExpression):
+        del statement_list[-1]
 
     standard_library_set = set()
     for builtin in accumulators.builtin_set:

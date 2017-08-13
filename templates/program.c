@@ -77,15 +77,8 @@ struct Object
   Instance instance;
 };
 
-const Object TRUE = {
-  BOOLEAN,
-  { true }
-};
-
-const Object FALSE = {
-  BOOLEAN,
-  { false }
-};
+const Object builtin$true = { BOOLEAN, (Instance)(bool){ true } };
+const Object builtin$false = { BOOLEAN, (Instance)(bool){ false } };
 
 struct EnvironmentNode
 {
@@ -404,35 +397,15 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
   }
 
   // TODO Return something better
-  return FALSE;
+  return builtin$false;
 }
 
 Object builtin$print = { CLOSURE, (Instance)(Closure){ NULL, builtin$print$implementation } };
 {% endif %}
-
 {% for function_definition in function_definition_list %}
-Object user${{function_definition.name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
-{
-  assert(argc == {{ function_definition.argument_name_list|length }});
-
-  Environment* environment = EnvironmentPool_allocate(environmentPool);
-  Environment_initialize(environment, parent);
-
-  {% for argument_name in function_definition.argument_name_list %}
-  Environment_set(environment, "{{ argument_name }}", args[{{ loop.index0 }}]);
-  {% endfor %}
-
-  {% for statement in function_definition.statement_list[:-1] %}
-  {{ generate_statement(statement) }}
-  {% endfor %}
-
-  Object result = {{ generate_statement(function_definition.statement_list[-1]) }}
-
-  Environment_setLive(environment, false);
-  return result;
-}
-
+{{ function_definition }}
 {% endfor %}
+
 int main(int argc, char** argv)
 {
   EnvironmentPool* environmentPool = EnvironmentPool_construct();
@@ -445,7 +418,7 @@ int main(int argc, char** argv)
   {% endfor %}
 
   {% for statement in statements %}
-  {{ generate_statement(statement) }}
+  {{ statement }}
   {% endfor %}
 
   Environment_setLive(environment, false);

@@ -141,11 +141,14 @@ def normalize_string_literal_expression(counter, expression):
     )
 
 def normalize_symbol_expression(counter, expression):
-    # TODO Store this in a C variable
+    variable = '${}'.format(counter)
     return (
-        counter,
-        (),
-        NormalSymbolExpression(symbol=expression.symbol),
+        counter + 1,
+        (NormalVariableInitializationStatement(
+            variable=variable,
+            expression=NormalSymbolExpression(symbol=expression.symbol),
+        ),),
+        NormalVariableExpression(variable=variable),
     )
 
 def normalize_function_call_expression(counter, expression):
@@ -358,6 +361,10 @@ def normalize_expression(counter, expression):
     }[type(expression)](counter, expression)
 
 def normalize_expression_statement(counter, statement):
+    # TODO Normalized will be a NormalVariableExpression, which will go unused
+    # for expression statements in every case except when it's a return
+    # statement. This cases warnings on C compilation. We should only generate
+    # this variable when it will be used on return.
     counter, prestatements, normalized = normalize_expression(counter, statement.expression)
 
     return (
@@ -406,7 +413,6 @@ def normalize_statement_list(statement_list):
         yield normalized
 
 def normalize(program):
-
     return NormalProgram(
         statement_list=normalize_statement_list(program.statement_list),
     )
