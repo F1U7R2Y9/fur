@@ -52,7 +52,7 @@ CFunctionCallForFurInfixOperator = collections.namedtuple(
 CFunctionCallExpression = collections.namedtuple(
     'CFunctionCallExpression',
     [
-        'name',
+        'function_expression',
         'argument_count',
         'argument_items',
     ],
@@ -258,7 +258,6 @@ def transform_negation_expression(accumulators, expression):
 def transform_expression(accumulators, expression):
     # TODO Clean up handlers for parsing expressions
     return {
-        parsing.FurFunctionCallExpression: transform_function_call_expression,
         parsing.FurInfixExpression: transform_infix_expression,
         parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
         parsing.FurNegationExpression: transform_negation_expression,
@@ -292,7 +291,7 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
 def transform_function_call_expression(accumulators, function_call):
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(
-        name=transform_expression(accumulators, function_call.function),
+        function_expression=transform_expression(accumulators, function_call.function_expression),
         argument_count=function_call.argument_count,
         argument_items=transform_expression(accumulators, function_call.argument_items),
     )

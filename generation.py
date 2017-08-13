@@ -56,13 +56,14 @@ def generate_negation_expression(c_negation_expression):
     )
 
 def generate_function_call(function_call):
-    # TODO This gets called twice, which is really inefficient--normalization would also allow other clauses besides a variable reference
-    # TODO This should no longer be called "name", as it can be an expression of a few types
+    # This gets called twice, so we want to be sure it is efficient and without side effects
+    assert isinstance(function_call.function_expression, transformation.CVariableExpression)
+
     # TODO Check the type of the things being called
-    get_closure_clause = generate_expression(function_call.name)
+    function_expression = generate_variable_expression(function_call.function_expression)
     return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, {})'.format(
-        get_closure_clause,
-        get_closure_clause,
+        function_expression,
+        function_expression,
         function_call.argument_count,
         # TODO This is just a single item containing a reference to the items list--make that clearer
         generate_expression(function_call.argument_items),

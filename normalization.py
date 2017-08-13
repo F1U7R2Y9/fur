@@ -51,7 +51,7 @@ NormalInfixExpression = collections.namedtuple(
 NormalFunctionCallExpression = collections.namedtuple(
     'NormalFunctionCallExpression',
     [
-        'function',
+        'function_expression',
         'argument_count',
         'argument_items',
     ],
@@ -189,11 +189,22 @@ def normalize_function_call_expression(counter, expression):
     for ps in function_prestatements:
         prestatements.append(ps)
 
+    if not isinstance(function_expression, NormalVariableExpression):
+        function_variable = '${}'.format(counter)
+
+        prestatements.append(NormalVariableInitializationStatement(
+            variable=function_variable,
+            expression=function_expression,
+        ))
+
+        function_expression = NormalVariableExpression(variable=function_variable)
+        counter += 1
+
     return (
         counter,
         tuple(prestatements),
         NormalFunctionCallExpression(
-            function=function_expression,
+            function_expression=function_expression,
             argument_count=len(arguments),
             argument_items=NormalVariableExpression(variable=arguments_variable),
         ),
