@@ -399,7 +399,7 @@ def _function_definition_statement_parser(index, tokens):
             tokens[index].line,
         ))
 
-    if tokens[index].type == 'symbol' and tokens[index].match == 'do':
+    if tokens[index].match == 'do':
         index += 1
     else:
         return failure
