@@ -125,7 +125,6 @@ def fake_normalization(counter, thing):
     return (counter, (), thing)
 
 def normalize_integer_literal_expression(counter, expression):
-    # TODO Store this in a C variable
     return (
         counter,
         (),
@@ -133,7 +132,6 @@ def normalize_integer_literal_expression(counter, expression):
     )
 
 def normalize_string_literal_expression(counter, expression):
-    # TODO Store this in a C variable
     return (
         counter,
         (),
