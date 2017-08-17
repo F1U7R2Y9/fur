@@ -74,6 +74,15 @@ FurInfixExpression = collections.namedtuple(
     ],
 )
 
+FurIfExpression = collections.namedtuple(
+    'FurIfExpression',
+    [
+        'condition_expression',
+        'if_statement_list',
+        'else_statement_list',
+    ],
+)
+
 def _integer_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -315,7 +324,57 @@ def _function_call_expression_parser(index, tokens):
 
     return True, index, function
 
-_expression_parser = _or_level_expression_parser
+def _if_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].match == 'if':
+        index += 1
+    else:
+        return failure
+
+    success, index, condition_expression = _or_level_expression_parser(index, tokens)
+
+    if not success:
+        raise Exception('Expected condition after "if" on line {}'.format(tokens[index].line))
+
+    if tokens[index].match == 'do':
+        index += 1
+    else:
+        raise Exception('Expected "do" after "if" on line {}'.format(tokens[index].line))
+
+
+    success, index, if_statement_list = _zero_or_more_parser(tuple, _statement_parser)(index, tokens)
+    _, index, _ = consume_newlines(index, tokens)
+
+    if tokens[index].match == 'else':
+        index += 1
+        success, index, else_statement_list = _zero_or_more_parser(tuple, _statement_parser)(index, tokens)
+        _, index, _ = consume_newlines(index, tokens)
+    else:
+        else_statement_list = ()
+
+    if tokens[index].match == 'end':
+        index += 1
+    else:
+        raise Exception('Expected "end" after "if" on line {}'.format(tokens[index].line))
+
+    return (
+        True,
+        index,
+        FurIfExpression(
+            condition_expression=condition_expression,
+            if_statement_list=if_statement_list,
+            else_statement_list=else_statement_list,
+        ),
+    )
+
+
+
+
+_expression_parser = _or_parser(
+    _or_level_expression_parser,
+    _if_expression_parser, # This should always be at the top level
+)
 
 def _expression_statement_parser(index, tokens):
     failure = (False, index, None)

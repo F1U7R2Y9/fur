@@ -108,31 +108,31 @@ def generate_if_else_statement(statement):
         generate_expression(statement.condition_expression),
     )
 
-    if len(statement.if_statements) == 0:
+    if len(statement.if_statement_list) == 0:
         condition_expression = '!({})'.format(condition_expression)
-        if_statements = statement.else_statements
-        else_statements = ()
+        if_statement_list = statement.else_statement_list
+        else_statement_list = ()
     else:
-        if_statements = statement.if_statements
-        else_statements = statement.else_statements
+        if_statement_list = statement.if_statement_list
+        else_statement_list = statement.else_statement_list
 
     generated_if_clause = 'if({})'.format(condition_expression)
 
-    if len(if_statements) == 0:
-        generated_if_statements = ';'
+    if len(if_statement_list) == 0:
+        generated_if_statement_list = ';'
     else:
-        generated_if_statements = indent('\n{{\n{}\n}}'.format(
-            indent('\n'.join(generate_statement(s) for s in if_statements)),
+        generated_if_statement_list = indent('\n{{\n{}\n}}'.format(
+            indent('\n'.join(generate_statement(s) for s in if_statement_list)),
         ))
 
-    if len(else_statements) == 0:
-        generated_else_statements = ''
+    if len(else_statement_list) == 0:
+        generated_else_statement_list = ''
     else:
-        generated_else_statements = indent('\nelse\n{{\n{}\n}}'.format(
-            indent('\n'.join(generate_statement(s) for s in else_statements)),
+        generated_else_statement_list = indent('\nelse\n{{\n{}\n}}'.format(
+            indent('\n'.join(generate_statement(s) for s in else_statement_list)),
         ))
 
-    return generated_if_clause + generated_if_statements + generated_else_statements
+    return generated_if_clause + generated_if_statement_list + generated_else_statement_list
 
 def generate_function_declaration(statement):
     return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(statement.name, statement.name)

@@ -52,7 +52,8 @@ enum Type
   BOOLEAN,
   CLOSURE,
   INTEGER,
-  STRING
+  STRING,
+  VOID
 };
 
 struct Closure;
@@ -79,6 +80,7 @@ struct Object
 
 const Object builtin$true = { BOOLEAN, (Instance)(bool){ true } };
 const Object builtin$false = { BOOLEAN, (Instance)(bool){ false } };
+const Object builtin$nil = { VOID, { 0 } };
 
 struct EnvironmentNode
 {
@@ -137,6 +139,7 @@ void Environment_mark(Environment* self)
       case BOOLEAN:
       case INTEGER:
       case STRING:
+      case VOID:
         break;
 
       case CLOSURE:
@@ -389,6 +392,10 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
       case STRING:
         // Using fwrite instead of printf to handle size_t length
         printf("%s", output.instance.string);
+        break;
+
+      case VOID:
+        printf("nil");
         break;
 
       default:

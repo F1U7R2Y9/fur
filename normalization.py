@@ -100,8 +100,8 @@ NormalIfElseStatement = collections.namedtuple(
     'NormalIfElseStatement',
     [
         'condition_expression',
-        'if_statements',
-        'else_statements',
+        'if_statement_list',
+        'else_statement_list',
     ],
 )
 
@@ -125,27 +125,41 @@ def fake_normalization(counter, thing):
     return (counter, (), thing)
 
 def normalize_integer_literal_expression(counter, expression):
+    variable = '${}'.format(counter)
     return (
-        counter,
-        (),
-        NormalIntegerLiteralExpression(integer=expression.integer),
+        counter + 1,
+        (
+            NormalVariableInitializationStatement(
+                variable=variable,
+                expression=NormalIntegerLiteralExpression(integer=expression.integer),
+            ),
+        ),
+        NormalVariableExpression(variable=variable),
     )
 
 def normalize_string_literal_expression(counter, expression):
+    variable = '${}'.format(counter)
     return (
-        counter,
-        (),
-        NormalStringLiteralExpression(string=expression.string),
+        counter + 1,
+        (
+            NormalVariableInitializationStatement(
+                variable=variable,
+                expression=NormalStringLiteralExpression(string=expression.string),
+            ),
+        ),
+        NormalVariableExpression(variable=variable),
     )
 
 def normalize_symbol_expression(counter, expression):
     variable = '${}'.format(counter)
     return (
         counter + 1,
-        (NormalVariableInitializationStatement(
-            variable=variable,
-            expression=NormalSymbolExpression(symbol=expression.symbol),
-        ),),
+        (
+            NormalVariableInitializationStatement(
+                variable=variable,
+                expression=NormalSymbolExpression(symbol=expression.symbol),
+            ),
+        ),
         NormalVariableExpression(variable=variable),
     )
 
@@ -162,10 +176,12 @@ def normalize_function_call_expression(counter, expression):
             prestatements.append(s)
 
         variable = '${}'.format(counter)
-        prestatements.append(NormalVariableInitializationStatement(
-            variable=variable,
-            expression=normalized_argument,
-        ))
+        prestatements.append(
+            NormalVariableInitializationStatement(
+                variable=variable,
+                expression=normalized_argument,
+            )
+        )
         arguments.append(NormalVariableExpression(
             variable=variable,
         ))
@@ -190,10 +206,12 @@ def normalize_function_call_expression(counter, expression):
     if not isinstance(function_expression, NormalVariableExpression):
         function_variable = '${}'.format(counter)
 
-        prestatements.append(NormalVariableInitializationStatement(
-            variable=function_variable,
-            expression=function_expression,
-        ))
+        prestatements.append(
+            NormalVariableInitializationStatement(
+                variable=function_variable,
+                expression=function_expression,
+            )
+        )
 
         function_expression = NormalVariableExpression(variable=function_variable)
         counter += 1
@@ -216,6 +234,8 @@ def normalize_basic_infix_operation(counter, expression):
     counter += 1
     right_variable = '${}'.format(counter)
     counter += 1
+    center_variable = '${}'.format(counter)
+    counter += 1
 
     root_prestatements = (
         NormalVariableInitializationStatement(
@@ -226,17 +246,21 @@ def normalize_basic_infix_operation(counter, expression):
             variable=right_variable,
             expression=right_expression,
         ),
+        NormalVariableInitializationStatement(
+            variable=center_variable,
+            expression=NormalInfixExpression(
+                order=expression.order,
+                operator=expression.operator,
+                left=NormalVariableExpression(variable=left_variable),
+                right=NormalVariableExpression(variable=right_variable),
+            ),
+        ),
     )
 
     return (
         counter,
         left_prestatements + right_prestatements + root_prestatements,
-        NormalInfixExpression(
-            order=expression.order,
-            operator=expression.operator,
-            left=NormalVariableExpression(variable=left_variable),
-            right=NormalVariableExpression(variable=right_variable),
-        ),
+        NormalVariableExpression(variable=center_variable),
     )
 
 def normalize_comparison_expression(counter, expression):
@@ -306,7 +330,10 @@ def normalize_boolean_expression(counter, expression):
     counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
 
     result_variable = '${}'.format(counter)
-    if_else_prestatment = NormalVariableInitializationStatement(variable=result_variable, expression=left_expression)
+    if_else_prestatment = NormalVariableInitializationStatement(
+        variable=result_variable,
+        expression=left_expression,
+    )
     counter += 1
 
     condition_expression=NormalVariableExpression(variable=result_variable)
@@ -315,15 +342,15 @@ def normalize_boolean_expression(counter, expression):
     if expression.operator == 'and':
         if_else_statement = NormalIfElseStatement(
             condition_expression=condition_expression,
-            if_statements=short_circuited_statements,
-            else_statements=(),
+            if_statement_list=short_circuited_statements,
+            else_statement_list=(),
         )
 
     elif expression.operator == 'or':
         if_else_statement = NormalIfElseStatement(
             condition_expression=condition_expression,
-            if_statements=(),
-            else_statements=short_circuited_statements,
+            if_statement_list=(),
+            else_statement_list=short_circuited_statements,
         )
 
     else:
@@ -345,6 +372,45 @@ def normalize_infix_expression(counter, expression):
         'or_level': normalize_boolean_expression,
     }[expression.order](counter, expression)
 
+def normalize_if_expression(counter, expression):
+    counter, condition_prestatements, condition_expression = normalize_expression(
+        counter,
+        expression.condition_expression,
+    )
+
+    result_variable = '${}'.format(counter)
+    counter += 1
+
+    counter, if_statement_list = normalize_statement_list(
+        counter,
+        expression.if_statement_list,
+        assign_result_to=result_variable,
+    )
+    counter, else_statement_list = normalize_statement_list(
+        counter,
+        expression.else_statement_list,
+        assign_result_to=result_variable,
+    )
+
+    return (
+        counter,
+        condition_prestatements + (
+            NormalVariableInitializationStatement(
+                variable=result_variable,
+                expression=NormalVariableExpression(variable='builtin$nil'),
+            ),
+            NormalIfElseStatement(
+                condition_expression=condition_expression,
+                if_statement_list=if_statement_list,
+                else_statement_list=else_statement_list,
+            ),
+        ),
+        NormalVariableExpression(variable=result_variable),
+    )
+
+
+
+
 def normalize_negation_expression(counter, expression):
     counter, prestatements, internal_expression = normalize_expression(counter, expression.value)
 
@@ -353,7 +419,12 @@ def normalize_negation_expression(counter, expression):
 
     return (
         counter,
-        prestatements + (NormalVariableInitializationStatement(variable=internal_variable, expression=internal_expression),),
+        prestatements + (
+            NormalVariableInitializationStatement(
+                variable=internal_variable,
+                expression=internal_expression,
+            ),
+        ),
         NormalNegationExpression(internal_expression=NormalVariableExpression(variable=internal_variable)),
     )
 
@@ -362,6 +433,7 @@ def normalize_expression(counter, expression):
         NormalInfixExpression: fake_normalization,
         NormalVariableExpression: fake_normalization,
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
+        parsing.FurIfExpression: normalize_if_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: normalize_integer_literal_expression,
         parsing.FurNegationExpression: normalize_negation_expression,
@@ -383,13 +455,18 @@ def normalize_expression_statement(counter, statement):
     )
 
 def normalize_function_definition_statement(counter, statement):
+    _, statement_list = normalize_statement_list(
+        0,
+        statement.statement_list,
+        assign_result_to='result',
+    )
     return (
         counter,
         (),
         NormalFunctionDefinitionStatement(
             name=statement.name,
             argument_name_list=statement.argument_name_list,
-            statement_list=normalize_statement_list(statement.statement_list),
+            statement_list=statement_list,
         ),
     )
 
@@ -412,16 +489,40 @@ def normalize_statement(counter, statement):
     }[type(statement)](counter, statement)
 
 @util.force_generator(tuple)
-def normalize_statement_list(statement_list):
-    counter = 0
+def normalize_statement_list(counter, statement_list, **kwargs):
+    assign_result_to = kwargs.pop('assign_result_to', None)
+
+    assert len(kwargs) == 0
+
+    result_statement_list = []
 
     for statement in statement_list:
         counter, prestatements, normalized = normalize_statement(counter, statement)
         for s in prestatements:
-            yield s
-        yield normalized
+            result_statement_list.append(s)
+        result_statement_list.append(normalized)
+
+    last_statement = result_statement_list[-1]
+
+    if isinstance(last_statement, NormalExpressionStatement) and isinstance(last_statement.expression, NormalVariableExpression):
+        result_expression = result_statement_list.pop().expression
+
+        if assign_result_to is not None:
+            result_statement_list.append(
+                NormalVariableReassignmentStatement(
+                    variable=assign_result_to,
+                    expression=result_expression,
+                )
+            )
+
+    return (
+        counter,
+        result_statement_list,
+    )
 
 def normalize(program):
+    _, statement_list = normalize_statement_list(0, program.statement_list)
+
     return NormalProgram(
-        statement_list=normalize_statement_list(program.statement_list),
+        statement_list=statement_list,
     )

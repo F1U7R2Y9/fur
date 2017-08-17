@@ -5,16 +5,15 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
 
   Environment* environment = EnvironmentPool_allocate(environmentPool);
   Environment_initialize(environment, parent);
+  Object result = builtin$nil;
 
   {% for argument_name in argument_name_list %}
   Environment_set(environment, "{{ argument_name }}", args[{{ loop.index0 }}]);
   {% endfor %}
 
-  {% for statement in statement_list[:-1] %}
+  {% for statement in statement_list %}
   {{ statement }}
   {% endfor %}
-
-  Object result = {{ statement_list[-1] }}
 
   Environment_setLive(environment, false);
   return result;

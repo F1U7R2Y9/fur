@@ -32,7 +32,7 @@ def _make_token_matcher(definition):
     return token_matcher
 
 _TOKEN_MATCHERS = [
-    ('keyword',                         r'(def|do|end)(?![a-z_])'),
+    ('keyword',                         r'(def|do|else|end|if)(?![a-z_])'),
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
     ('comma',                           r','),

@@ -1,0 +1,14 @@
+first_greeting = if true do
+  'Hello, world'
+else
+  'Goodnight, moon'
+end
+
+second_greeting = if false do
+  'Hello, world'
+else
+  'Goodnight, moon'
+end
+
+print(first_greeting, '\n')
+print(second_greeting, '\n')

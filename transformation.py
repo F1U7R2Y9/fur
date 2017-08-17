@@ -103,8 +103,8 @@ CIfElseStatement = collections.namedtuple(
     'CIfElseStatement',
     [
         'condition_expression',
-        'if_statements',
-        'else_statements',
+        'if_statement_list',
+        'else_statement_list',
     ],
 )
 
@@ -304,8 +304,8 @@ def transform_expression_statement(accumulators, statement):
 def transform_if_else_statement(accumulators, statement):
     return CIfElseStatement(
         condition_expression=transform_expression(accumulators, statement.condition_expression),
-        if_statements=tuple(transform_statement(accumulators, s) for s in statement.if_statements),
-        else_statements=tuple(transform_statement(accumulators, s) for s in statement.else_statements),
+        if_statement_list=tuple(transform_statement(accumulators, s) for s in statement.if_statement_list),
+        else_statement_list=tuple(transform_statement(accumulators, s) for s in statement.else_statement_list),
     )
 
 def transform_array_variable_initialization_statement(accumulators, statement):
