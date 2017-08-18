@@ -74,6 +74,13 @@ FurInfixExpression = collections.namedtuple(
     ],
 )
 
+FurListLiteralExpression = collections.namedtuple(
+    'FurListLiteralExpression',
+    [
+        'item_expression_list',
+    ],
+)
+
 FurIfExpression = collections.namedtuple(
     'FurIfExpression',
     [
@@ -105,11 +112,11 @@ def _symbol_expression_parser(index, tokens):
 
     return (False, index, None)
 
-def _parenthese_wrapped_parser(internal_parser):
+def _wrapped_parser(open_token, close_token, internal_parser):
     def result_parser(index, tokens):
         failure = (False, index, None)
 
-        if tokens[index].type == 'open_parenthese':
+        if tokens[index].type == open_token:
             index += 1
         else:
             return failure
@@ -118,10 +125,11 @@ def _parenthese_wrapped_parser(internal_parser):
         if not success:
             return failure
 
-        if tokens[index].type == 'close_parenthese':
+        if tokens[index].type == close_token:
             index += 1
         else:
-            raise Exception('Expected ")" on line {}, found "{}"'.format(
+            # TODO Put the actual expected character in the error message
+            raise Exception('Expected closing token on line {}, found "{}"'.format(
                 tokens[index].line,
                 tokens[index].match,
             ))
@@ -130,8 +138,26 @@ def _parenthese_wrapped_parser(internal_parser):
 
     return result_parser
 
+def _bracket_wrapped_parser(internal_parser):
+    return _wrapped_parser('open_bracket', 'close_bracket', internal_parser)
+
+def _parenthese_wrapped_parser(internal_parser):
+    return _wrapped_parser('open_parenthese', 'close_parenthese', internal_parser)
+
 def _parenthesized_expression_parser(index, tokens):
     return _parenthese_wrapped_parser(_expression_parser)(index, tokens)
+
+def _list_literal_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    success, index, item_expression_list = _bracket_wrapped_parser(_comma_separated_expression_list_parser)(index, tokens)
+
+    if success:
+        return success, index, FurListLiteralExpression(
+            item_expression_list=item_expression_list,
+        )
+    else:
+        return failure
 
 def _negation_expression_parser(index, tokens):
     failure = (False, index, None)
@@ -149,10 +175,12 @@ def _negation_expression_parser(index, tokens):
 def _literal_level_expression_parser(index, tokens):
     return _or_parser(
         _negation_expression_parser,
+        _list_item_expression_parser,
         _function_call_expression_parser,
         _parenthesized_expression_parser,
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
+        _list_literal_expression_parser,
         _symbol_expression_parser,
     )(index, tokens)
 
@@ -225,6 +253,8 @@ def _comma_separated_list_parser(subparser):
 
         items = []
 
+        _, index, _ = consume_newlines(index, tokens)
+
         success, index, item = subparser(index, tokens)
 
         if success:
@@ -233,10 +263,13 @@ def _comma_separated_list_parser(subparser):
             return (True, start_index, ())
 
         while success and index < len(tokens) and tokens[index].type == 'comma':
+            index += 1
             success = False
 
-            if index + 1 < len(tokens):
-                success, try_index, item = subparser(index + 1, tokens)
+            _, index, _ = consume_newlines(index, tokens)
+
+            if index < len(tokens):
+                success, try_index, item = subparser(index, tokens)
 
             if success:
                 items.append(item)
@@ -248,6 +281,14 @@ def _comma_separated_list_parser(subparser):
 
 def _comma_separated_expression_list_parser(index, tokens):
     return _comma_separated_list_parser(_expression_parser)(index, tokens)
+
+FurListItemExpression = collections.namedtuple(
+    'FurListItemExpression',
+    [
+        'list_expression',
+        'index_expression',
+    ],
+)
 
 FurFunctionCallExpression = collections.namedtuple(
     'FurFunctionCallExpression',
@@ -287,6 +328,42 @@ FurProgram = collections.namedtuple(
         'statement_list',
     ],
 )
+
+def _list_item_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    # We have to be careful what expressions we add here. Otherwise expressions
+    # like "a + b[0]" become ambiguous to the parser.
+    success, index, list_expression = _or_parser(
+        _symbol_expression_parser,
+        _parenthesized_expression_parser,
+    )(index, tokens)
+
+    if not success:
+        return failure
+
+    success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(
+        index,
+        tokens,
+    )
+
+    if not success:
+        return failure
+
+    while success and index < len(tokens):
+        # "list_expression" is actually the full list item expression if the next parse attempt doesn't succeed
+        # We can't give this a better name without a bunch of checks, however.
+        list_expression = FurListItemExpression(
+            list_expression=list_expression,
+            index_expression=index_expression,
+        )
+
+        success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(
+            index,
+            tokens,
+        )
+
+    return True, index, list_expression
 
 def _function_call_expression_parser(index, tokens):
     failure = (False, index, None)

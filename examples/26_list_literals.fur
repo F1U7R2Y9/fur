@@ -1,0 +1,7 @@
+greetings = [
+  'Hello, world',
+  'Goodnight, moon',
+]
+
+print(greetings[0], '\n')
+print(greetings[1], '\n')

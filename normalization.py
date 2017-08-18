@@ -137,6 +137,83 @@ def normalize_integer_literal_expression(counter, expression):
         NormalVariableExpression(variable=variable),
     )
 
+NormalListConstructExpression = collections.namedtuple(
+    'NormalListConstructExpression',
+    [
+        'allocate',
+    ],
+)
+
+NormalListAppendStatement = collections.namedtuple(
+    'NormalListAppendStatement',
+    [
+        'list_expression',
+        'item_expression',
+    ],
+)
+
+NormalListGetExpression = collections.namedtuple(
+    'NormalListGetExpression',
+    [
+        'list_expression',
+        'index_expression',
+    ],
+)
+
+def normalize_list_literal_expression(counter, expression):
+    list_variable = '${}'.format(counter)
+    counter += 1
+
+    prestatements = [
+        NormalVariableInitializationStatement(
+            variable=list_variable,
+            expression=NormalListConstructExpression(allocate=len(expression.item_expression_list)),
+        ),
+    ]
+
+    list_expression = NormalVariableExpression(variable=list_variable)
+
+    for item_expression in expression.item_expression_list:
+        counter, item_expression_prestatements, normalized = normalize_expression(
+            counter,
+            item_expression,
+        )
+
+        for p in item_expression_prestatements:
+            prestatements.append(p)
+
+        prestatements.append(
+            NormalListAppendStatement(
+                list_expression=list_expression,
+                item_expression=normalized,
+            )
+        )
+
+    return (
+        counter,
+        tuple(prestatements),
+        list_expression,
+    )
+
+def normalize_list_item_expression(counter, expression):
+    counter, list_prestatements, list_expression = normalize_expression(counter, expression.list_expression)
+    counter, index_prestatements, index_expression = normalize_expression(counter, expression.index_expression)
+
+    result_variable = '${}'.format(counter)
+    result_prestatement = NormalVariableInitializationStatement(
+        variable=result_variable,
+        expression=NormalListGetExpression(
+            list_expression=list_expression,
+            index_expression=index_expression,
+        ),
+    )
+
+    return (
+        counter + 1,
+        list_prestatements + index_prestatements + (result_prestatement,),
+        NormalVariableExpression(variable=result_variable),
+    )
+
 def normalize_string_literal_expression(counter, expression):
     variable = '${}'.format(counter)
     return (
@@ -408,9 +485,6 @@ def normalize_if_expression(counter, expression):
         NormalVariableExpression(variable=result_variable),
     )
 
-
-
-
 def normalize_negation_expression(counter, expression):
     counter, prestatements, internal_expression = normalize_expression(counter, expression.value)
 
@@ -436,6 +510,8 @@ def normalize_expression(counter, expression):
         parsing.FurIfExpression: normalize_if_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
         parsing.FurIntegerLiteralExpression: normalize_integer_literal_expression,
+        parsing.FurListLiteralExpression: normalize_list_literal_expression,
+        parsing.FurListItemExpression: normalize_list_item_expression,
         parsing.FurNegationExpression: normalize_negation_expression,
         parsing.FurStringLiteralExpression: normalize_string_literal_expression,
         parsing.FurSymbolExpression: normalize_symbol_expression,

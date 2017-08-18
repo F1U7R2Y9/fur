@@ -33,13 +33,15 @@ def _make_token_matcher(definition):
 
 _TOKEN_MATCHERS = [
     ('keyword',                         r'(def|do|else|end|if)(?![a-z_])'),
+    ('open_bracket',                    r'\['),
+    ('close_bracket',                   r'\]'),
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
     ('comma',                           r','),
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z_]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
-    ('comparison_level_operator',         r'(<=|>=|==|!=|<|>)'),
+    ('comparison_level_operator',       r'(<=|>=|==|!=|<|>)'),
     ('assignment_operator',             r'='),
     ('addition_level_operator',         r'(\+|-)'),
     ('multiplication_level_operator',   r'(\*|//|%)'),

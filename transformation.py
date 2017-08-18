@@ -140,10 +140,10 @@ CProgram = collections.namedtuple(
 )
 
 BUILTINS = {
-    'false':    [],
-    'pow':      ['math.h'],
-    'print':    ['stdio.h'],
-    'true':     [],
+    'false':            [],
+    'pow':              ['math.h'],
+    'print':            ['stdio.h'],
+    'true':             [],
 }
 
 def transform_variable_expression(accumulators, expression):
@@ -255,6 +255,44 @@ def transform_negation_expression(accumulators, expression):
         value=transform_expression(accumulators, expression.internal_expression),
     )
 
+CListConstructExpression = collections.namedtuple(
+    'CListConstructExpression',
+    [
+        'allocate',
+    ],
+)
+
+CListAppendStatement = collections.namedtuple(
+    'CListAppendStatement',
+    [
+        'list_expression',
+        'item_expression',
+    ],
+)
+
+CListGetExpression = collections.namedtuple(
+    'CListGetExpression',
+    [
+        'list_expression',
+        'index_expression',
+    ],
+)
+
+def transform_list_construct_expression(accumulators, expression):
+    return CListConstructExpression(allocate=expression.allocate)
+
+def transform_list_get_expression(accumulators, expression):
+    return CListGetExpression(
+        list_expression=transform_expression(accumulators, expression.list_expression),
+        index_expression=transform_expression(accumulators, expression.index_expression),
+    )
+
+def transform_list_append_statement(accumulators, expression):
+    return CListAppendStatement(
+        list_expression=transform_expression(accumulators, expression.list_expression),
+        item_expression=transform_expression(accumulators, expression.item_expression),
+    )
+
 def transform_expression(accumulators, expression):
     # TODO Clean up handlers for parsing expressions
     return {
@@ -265,6 +303,8 @@ def transform_expression(accumulators, expression):
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
         normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
+        normalization.NormalListConstructExpression: transform_list_construct_expression,
+        normalization.NormalListGetExpression: transform_list_get_expression,
         normalization.NormalNegationExpression: transform_negation_expression,
         normalization.NormalStringLiteralExpression: transform_string_literal_expression,
         normalization.NormalSymbolExpression: transform_symbol_expression,
@@ -348,6 +388,7 @@ def transform_statement(accumulators, statement):
         normalization.NormalExpressionStatement: transform_expression_statement,
         normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
         normalization.NormalIfElseStatement: transform_if_else_statement,
+        normalization.NormalListAppendStatement: transform_list_append_statement,
         normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)

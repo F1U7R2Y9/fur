@@ -52,6 +52,7 @@ enum Type
   BOOLEAN,
   CLOSURE,
   INTEGER,
+  LIST,
   STRING,
   VOID
 };
@@ -64,11 +65,21 @@ struct Closure
   Object (*call)(EnvironmentPool*, Environment*, size_t, Object*);
 };
 
+struct List;
+typedef struct List List;
+struct List
+{
+  size_t allocated;
+  size_t length;
+  Object* items;
+};
+
 union Instance
 {
   bool boolean;
   Closure closure;
   int32_t integer;
+  List list;
   const char* string;
 };
 
@@ -81,6 +92,38 @@ struct Object
 const Object builtin$true = { BOOLEAN, (Instance)(bool){ true } };
 const Object builtin$false = { BOOLEAN, (Instance)(bool){ false } };
 const Object builtin$nil = { VOID, { 0 } };
+
+Object List_construct(size_t allocate)
+{
+  Object* items = malloc(sizeof(Object) * allocate);
+  Object result = { LIST, (Instance)(List){ allocate, 0, items } };
+  return result;
+}
+
+void List_append(Object* list, Object item)
+{
+  assert(list->type == LIST);
+
+  if(list->instance.list.allocated == list->instance.list.length)
+  {
+    list->instance.list.allocated *= 2;
+    list->instance.list.items = realloc(
+      list->instance.list.items,
+      sizeof(Object) * list->instance.list.allocated
+    );
+  }
+
+  list->instance.list.items[list->instance.list.length] = item;
+  list->instance.list.length++;
+}
+
+Object List_get(Object* list, Object index)
+{
+  assert(list->type == LIST);
+  assert(index.type == INTEGER);
+
+  return list->instance.list.items[index.instance.integer];
+}
 
 struct EnvironmentNode
 {
@@ -114,6 +157,24 @@ void Environment_deinitialize(Environment* self)
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
   {
     next = node->next;
+
+    switch(node->value.type)
+    {
+      case BOOLEAN:
+      case CLOSURE:
+      case INTEGER:
+      case STRING:
+      case VOID:
+        break;
+
+      case LIST:
+        free(node->value.instance.list.items);
+        break;
+
+      default:
+        assert(false);
+    }
+
     free(node);
   }
 }

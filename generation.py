@@ -23,30 +23,32 @@ def generate_symbol_expression(symbol_expression):
 def generate_variable_expression(expression):
     return expression.variable
 
+def generate_function_call_for_fur_infix_operator(expression):
+    return 'operator${}({}, {})'.format(
+        expression.name,
+        generate_expression(expression.left),
+        generate_expression(expression.right),
+    )
+
+def generate_list_construct_expression(expression):
+    return 'List_construct({})'.format(expression.allocate)
+
+def generate_list_get_expression(expression):
+    return 'List_get(&{}, {})'.format(
+        generate_expression(expression.list_expression),
+        generate_expression(expression.index_expression),
+    )
+
 def generate_expression(expression):
-    if isinstance(expression, transformation.CNegationExpression):
-        return generate_negation_expression(expression)
-
-    if isinstance(expression, transformation.CFunctionCallExpression):
-        return generate_function_call(expression)
-
-    LITERAL_TYPE_MAPPING = {
+    return {
+        transformation.CFunctionCallExpression: generate_function_call,
+        transformation.CFunctionCallForFurInfixOperator: generate_function_call_for_fur_infix_operator,
         transformation.CIntegerLiteral: generate_integer_literal,
+        transformation.CListConstructExpression: generate_list_construct_expression,
+        transformation.CListGetExpression: generate_list_get_expression,
+        transformation.CNegationExpression: generate_negation_expression,
         transformation.CStringLiteral: generate_string_literal,
         transformation.CSymbolExpression: generate_symbol_expression,
-    }
-
-    if type(expression) in LITERAL_TYPE_MAPPING:
-        return LITERAL_TYPE_MAPPING[type(expression)](expression)
-
-    if isinstance(expression, transformation.CFunctionCallForFurInfixOperator):
-        return 'operator${}({}, {})'.format(
-            expression.name,
-            generate_expression(expression.left),
-            generate_expression(expression.right),
-        )
-
-    return {
         transformation.CVariableExpression: generate_variable_expression,
     }[type(expression)](expression)
 
@@ -137,13 +139,20 @@ def generate_if_else_statement(statement):
 def generate_function_declaration(statement):
     return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(statement.name, statement.name)
 
+def generate_list_append_statement(statement):
+    return 'List_append(&{}, {});'.format(
+        generate_expression(statement.list_expression),
+        generate_expression(statement.item_expression),
+    )
+
 def generate_statement(statement):
     return {
+        transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
         transformation.CExpressionStatement: generate_expression_statement,
         transformation.CFunctionDeclaration: generate_function_declaration,
         transformation.CIfElseStatement: generate_if_else_statement,
+        transformation.CListAppendStatement: generate_list_append_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
-        transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
         transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)
