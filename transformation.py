@@ -140,6 +140,7 @@ CProgram = collections.namedtuple(
 )
 
 BUILTINS = {
+    'concatenate':      [],
     'false':            [],
     'pow':              ['math.h'],
     'print':            ['stdio.h'],
@@ -185,7 +186,11 @@ CInfixDeclaration = collections.namedtuple(
     ],
 )
 
-INFIX_OPERATOR_TO_DECLARATION = {
+FUR_INFIX_OPERATOR_TO_C_FUNCTION = {
+    '++':   'concatenate',
+}
+
+FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR = {
     '+':    CInfixDeclaration(name='add', in_type='integer', out_type='integer', operator='+'),
     '-':    CInfixDeclaration(name='subtract', in_type='integer', out_type='integer', operator='-'),
     '*':    CInfixDeclaration(name='multiply', in_type='integer', out_type='integer', operator='*'),
@@ -202,7 +207,7 @@ INFIX_OPERATOR_TO_DECLARATION = {
 }
 
 def transform_comparison_level_expression(accumulators, expression):
-    accumulators.operator_set.add(INFIX_OPERATOR_TO_DECLARATION[expression.operator])
+    accumulators.operator_set.add(FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator])
 
     # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
     if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'comparison_level':
@@ -223,26 +228,35 @@ def transform_comparison_level_expression(accumulators, expression):
             name='and',
             left=left,
             right=CFunctionCallForFurInfixOperator(
-                name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
+                name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
                 left=middle,
                 right=right,
             ),
         )
 
     return CFunctionCallForFurInfixOperator(
-        name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
+        name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
         left=transform_expression(accumulators, expression.left),
         right=transform_expression(accumulators, expression.right),
     )
 
+def transform_infix_operator_without_c_equivalent(accumulators, expression):
+    return CFunctionCallForFurInfixOperator(
+        name='concatenate',
+        left=transform_expression(accumulators, expression.left),
+        right=transform_expression(accumulators, expression.right),
+    )
 def transform_infix_expression(accumulators, expression):
+    if expression.operator in FUR_INFIX_OPERATOR_TO_C_FUNCTION:
+        return transform_infix_operator_without_c_equivalent(accumulators, expression)
+
     if expression.order == 'comparison_level':
         return transform_comparison_level_expression(accumulators, expression)
 
-    accumulators.operator_set.add(INFIX_OPERATOR_TO_DECLARATION[expression.operator])
+    accumulators.operator_set.add(FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator])
 
     return CFunctionCallForFurInfixOperator(
-        name=INFIX_OPERATOR_TO_DECLARATION[expression.operator].name,
+        name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
         left=transform_expression(accumulators, expression.left),
         right=transform_expression(accumulators, expression.right),
     )

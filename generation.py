@@ -12,7 +12,10 @@ def generate_integer_literal(c_integer_literal):
     return 'integerLiteral({})'.format(c_integer_literal.value)
 
 def generate_string_literal(c_string_literal):
-    return 'stringLiteral(STRING_LITERAL_LIST[{}])'.format(c_string_literal.index)
+    return 'stringLiteral(STRING_LITERAL_LIST[{}] /* string: {} */)'.format(
+        c_string_literal.index,
+        repr(c_string_literal.value),
+    )
 
 def generate_symbol_expression(symbol_expression):
     return 'Environment_get(environment, SYMBOL_LIST[{}] /* symbol: {} */)'.format(
@@ -72,8 +75,7 @@ def generate_function_call(function_call):
     )
 
 def generate_expression_statement(statement):
-    # TODO Do we need to garbage collect the results of arbitrary statements?
-    return '{};'.format(generate_expression(statement.expression))
+    return 'Object_deinitialize(&({}));'.format(generate_expression(statement.expression))
 
 def generate_symbol_assignment_statement(statement):
     return 'Environment_set(environment, SYMBOL_LIST[{}] /* symbol: {} */, {});'.format(

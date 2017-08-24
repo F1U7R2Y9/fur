@@ -43,7 +43,7 @@ _TOKEN_MATCHERS = [
     ('single_quoted_string_literal',    r"'.*?'"),
     ('comparison_level_operator',       r'(<=|>=|==|!=|<|>)'),
     ('assignment_operator',             r'='),
-    ('addition_level_operator',         r'(\+|-)'),
+    ('addition_level_operator',         r'(\+\+|\+|-)'),
     ('multiplication_level_operator',   r'(\*|//|%)'),
     ('newline',                         r'\n'),
 ]

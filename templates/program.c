@@ -53,7 +53,8 @@ enum Type
   CLOSURE,
   INTEGER,
   LIST,
-  STRING,
+  STRING_CONCATENATION,
+  STRING_LITERAL,
   VOID
 };
 
@@ -74,13 +75,17 @@ struct List
   Object* items;
 };
 
+struct StringConcatenation;
+typedef struct StringConcatenation StringConcatenation;
+
 union Instance
 {
   bool boolean;
   Closure closure;
   int32_t integer;
   List list;
-  const char* string;
+  StringConcatenation* string_concatenation;
+  const char* string_literal;
 };
 
 struct Object
@@ -92,6 +97,13 @@ struct Object
 const Object builtin$true = { BOOLEAN, (Instance)(bool){ true } };
 const Object builtin$false = { BOOLEAN, (Instance)(bool){ false } };
 const Object builtin$nil = { VOID, { 0 } };
+
+struct StringConcatenation
+{
+  size_t referenceCount;
+  Object left;
+  Object right;
+};
 
 Object List_construct(size_t allocate)
 {
@@ -151,30 +163,52 @@ void Environment_initialize(Environment* self, Environment* parent)
   self->live = true;
 }
 
+void Object_deinitialize(Object* self)
+{
+  switch(self->type)
+  {
+    case BOOLEAN:
+      break;
+    case CLOSURE:
+      break;
+    case INTEGER:
+      break;
+    case STRING_LITERAL:
+      break;
+    case VOID:
+      break;
+
+    case LIST:
+      for(size_t i = 0; i < self->instance.list.length; i++) {
+        Object_deinitialize(&(self->instance.list.items[i]));
+      }
+
+      free(self->instance.list.items);
+      break;
+
+    case STRING_CONCATENATION:
+      self->instance.string_concatenation->referenceCount--;
+
+      if(self->instance.string_concatenation->referenceCount == 0)
+      {
+        Object_deinitialize(&(self->instance.string_concatenation->left));
+        Object_deinitialize(&(self->instance.string_concatenation->right));
+        free(self->instance.string_concatenation);
+      }
+      break;
+
+    default:
+      assert(false);
+  }
+}
+
 void Environment_deinitialize(Environment* self)
 {
   EnvironmentNode* next;
   for(EnvironmentNode* node = self->root; node != NULL; node = next)
   {
     next = node->next;
-
-    switch(node->value.type)
-    {
-      case BOOLEAN:
-      case CLOSURE:
-      case INTEGER:
-      case STRING:
-      case VOID:
-        break;
-
-      case LIST:
-        free(node->value.instance.list.items);
-        break;
-
-      default:
-        assert(false);
-    }
-
+    Object_deinitialize(&(node->value));
     free(node);
   }
 }
@@ -199,7 +233,7 @@ void Environment_mark(Environment* self)
     {
       case BOOLEAN:
       case INTEGER:
-      case STRING:
+      case STRING_LITERAL:
       case VOID:
         break;
 
@@ -380,8 +414,8 @@ Object integerLiteral(int32_t literal)
 Object stringLiteral(const char* literal)
 {
   Object result;
-  result.type = STRING;
-  result.instance.string = literal;
+  result.type = STRING_LITERAL;
+  result.instance.string_literal = literal;
   return result;
 }
 
@@ -393,6 +427,42 @@ Object operator$negate(Object input)
   Object result;
   result.type = INTEGER;
   result.instance.integer = -input.instance.integer;
+  return result;
+}
+
+// TODO Make this conditionally added
+Object operator$concatenate(Object left, Object right)
+{
+  switch(left.type) {
+    case STRING_CONCATENATION:
+      left.instance.string_concatenation->referenceCount++;
+      break;
+
+    case STRING_LITERAL:
+      break;
+
+    default:
+      assert(false);
+  }
+
+  switch(right.type) {
+    case STRING_CONCATENATION:
+      right.instance.string_concatenation->referenceCount++;
+      break;
+
+    case STRING_LITERAL:
+      break;
+
+    default:
+      assert(false);
+  }
+
+  StringConcatenation* concatenation = malloc(sizeof(StringConcatenation));
+  concatenation->referenceCount = 1;
+  concatenation->left = left;
+  concatenation->right = right;
+
+  Object result = { STRING_CONCATENATION, (Instance)concatenation };
   return result;
 }
 
@@ -450,9 +520,14 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
         printf("%" PRId32, output.instance.integer);
         break;
 
-      case STRING:
+      case STRING_CONCATENATION:
+        builtin$print$implementation(NULL, NULL, 1, &(output.instance.string_concatenation->left));
+        builtin$print$implementation(NULL, NULL, 1, &(output.instance.string_concatenation->right));
+        break;
+
+      case STRING_LITERAL:
         // Using fwrite instead of printf to handle size_t length
-        printf("%s", output.instance.string);
+        printf("%s", output.instance.string_literal);
         break;
 
       case VOID:
@@ -462,6 +537,7 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
       default:
         assert(false);
     }
+    Object_deinitialize(&output);
   }
 
   // TODO Return something better

@@ -293,14 +293,23 @@ def normalize_function_call_expression(counter, expression):
         function_expression = NormalVariableExpression(variable=function_variable)
         counter += 1
 
+    result_variable = '${}'.format(counter)
+
+    prestatements.append(
+        NormalVariableInitializationStatement(
+            variable=result_variable,
+            expression=NormalFunctionCallExpression(
+                function_expression=function_expression,
+                argument_count=len(arguments),
+                argument_items=NormalVariableExpression(variable=arguments_variable),
+            ),
+        )
+    )
+
     return (
-        counter,
+        counter + 1,
         tuple(prestatements),
-        NormalFunctionCallExpression(
-            function_expression=function_expression,
-            argument_count=len(arguments),
-            argument_items=NormalVariableExpression(variable=arguments_variable),
-        ),
+        NormalVariableExpression(variable=result_variable),
     )
 
 def normalize_basic_infix_operation(counter, expression):
