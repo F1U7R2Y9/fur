@@ -41,6 +41,7 @@ _TOKEN_MATCHERS = [
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z_]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
+    ('double_quoted_string_literal',    r'".*?"'),
     ('comparison_level_operator',       r'(<=|>=|==|!=|<|>)'),
     ('assignment_operator',             r'='),
     ('addition_level_operator',         r'(\+\+|\+|-)'),

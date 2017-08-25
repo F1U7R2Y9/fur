@@ -101,6 +101,9 @@ def _integer_literal_expression_parser(index, tokens):
     return True, index, FurIntegerLiteralExpression(integer=value)
 
 def _string_literal_expression_parser(index, tokens):
+    if tokens[index].type == 'double_quoted_string_literal':
+        return (True, index + 1, FurStringLiteralExpression(string=tokens[index].match[1:-1]))
+
     if tokens[index].type == 'single_quoted_string_literal':
         return (True, index + 1, FurStringLiteralExpression(string=tokens[index].match[1:-1]))
 

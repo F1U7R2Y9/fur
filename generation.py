@@ -168,6 +168,16 @@ def generate_function_definition(definition):
     )
     return definition
 
+C_ESCAPES = {
+    '"':    r'\"',
+}
+
+def escape_character(ch):
+    return C_ESCAPES.get(ch, ch)
+
+def escape_string_literal(string_literal):
+    return  ''.join(escape_character(ch) for ch in string_literal)
+
 def generate(program):
     template = ENV.get_template('program.c')
     return template.render(
@@ -176,7 +186,7 @@ def generate(program):
         infix_declarations=program.operator_declarations,
         statements=list(generate_statement(s) for s in program.statements),
         standard_libraries=list(sorted(program.standard_libraries)),
-        string_literal_list=program.string_literal_list,
+        string_literal_list=list(escape_string_literal(s) for s in program.string_literal_list),
         symbol_list=program.symbol_list,
     )
 

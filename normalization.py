@@ -587,12 +587,12 @@ def normalize_statement_list(counter, statement_list, **kwargs):
             result_statement_list.append(s)
         result_statement_list.append(normalized)
 
+    # TODO The way we fix the last statement is really confusing
     last_statement = result_statement_list[-1]
 
     if isinstance(last_statement, NormalExpressionStatement) and isinstance(last_statement.expression, NormalVariableExpression):
-        result_expression = result_statement_list.pop().expression
-
         if assign_result_to is not None:
+            result_expression = result_statement_list.pop().expression
             result_statement_list.append(
                 NormalVariableReassignmentStatement(
                     variable=assign_result_to,

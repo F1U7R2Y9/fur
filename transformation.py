@@ -432,11 +432,6 @@ def transform(program):
         transform_statement(accumulators, statement) for statement in program.statement_list
     ]
 
-    # This prevents warnings about normalized variables being entire C statements
-    last_statement = statement_list[-1]
-    if isinstance(last_statement, normalization.NormalExpressionStatement) and isinstance(last_statement.expression, normalization.NormalVariableExpression):
-        del statement_list[-1]
-
     standard_library_set = set()
     for builtin in accumulators.builtin_set:
         for standard_library in BUILTINS[builtin]:
