@@ -33,6 +33,20 @@ def generate_function_call_for_fur_infix_operator(expression):
         generate_expression(expression.right),
     )
 
+def generate_structure_literal_expression(expression):
+    return 'Structure_construct({}, {}, {})'.format(
+        expression.field_count,
+        expression.symbol_list_variable,
+        expression.value_list_variable,
+    )
+
+def generate_dot_expression(expression):
+    return 'Structure_get(&{}, SYMBOL_LIST[{}] /* symbol: "{}" */)'.format(
+        generate_variable_expression(expression.instance),
+        expression.symbol_list_index,
+        expression.symbol,
+    )
+
 def generate_list_construct_expression(expression):
     return 'List_construct({})'.format(expression.allocate)
 
@@ -44,6 +58,7 @@ def generate_list_get_expression(expression):
 
 def generate_expression(expression):
     return {
+        transformation.CDotExpression: generate_dot_expression,
         transformation.CFunctionCallExpression: generate_function_call,
         transformation.CFunctionCallForFurInfixOperator: generate_function_call_for_fur_infix_operator,
         transformation.CIntegerLiteral: generate_integer_literal,
@@ -51,6 +66,7 @@ def generate_expression(expression):
         transformation.CListGetExpression: generate_list_get_expression,
         transformation.CNegationExpression: generate_negation_expression,
         transformation.CStringLiteral: generate_string_literal,
+        transformation.CStructureLiteralExpression: generate_structure_literal_expression,
         transformation.CSymbolExpression: generate_symbol_expression,
         transformation.CVariableExpression: generate_variable_expression,
     }[type(expression)](expression)
@@ -88,6 +104,15 @@ def generate_array_variable_initialization_statement(statement):
     return 'Object {}[] = {{ {} }};'.format(
         statement.variable,
         ', '.join(generate_expression(i) for i in statement.items),
+    )
+
+def generate_symbol_array_variable_initialization_statement(statement):
+    return 'const char* {}[] = {{ {} }};'.format(
+        statement.variable,
+        ', '.join('SYMBOL_LIST[{}] /* symbol: "{}" */'.format(
+            statement.symbol_list_indices[i],
+            statement.symbol_list[i],
+        ) for i in range(len(statement.symbol_list))),
     )
 
 def generate_variable_initialization_statement(statement):
@@ -155,6 +180,7 @@ def generate_statement(statement):
         transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CListAppendStatement: generate_list_append_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
+        transformation.CSymbolArrayVariableInitializationStatement: generate_symbol_array_variable_initialization_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
         transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)

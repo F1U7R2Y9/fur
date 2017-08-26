@@ -90,6 +90,21 @@ FurIfExpression = collections.namedtuple(
     ],
 )
 
+FurSymbolExpressionPair = collections.namedtuple(
+    'FurSymbolExpressionPair',
+    [
+        'symbol',
+        'expression',
+    ],
+)
+
+FurStructureLiteralExpression = collections.namedtuple(
+    'FurStructureLiteralExpression',
+    [
+        'fields',
+    ],
+)
+
 def _integer_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -150,6 +165,44 @@ def _parenthese_wrapped_parser(internal_parser):
 def _parenthesized_expression_parser(index, tokens):
     return _parenthese_wrapped_parser(_expression_parser)(index, tokens)
 
+def symbol_expression_pair_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].type == 'symbol':
+        symbol = tokens[index].match
+        index += 1
+    else:
+        return failure
+
+    if tokens[index].type == 'colon':
+        index += 1
+    else:
+        return failure
+
+    success, index, expression = _expression_parser(index, tokens)
+
+    if not success:
+        raise Exception()
+
+    return (
+        True,
+        index,
+        FurSymbolExpressionPair(
+            symbol=symbol,
+            expression=expression,
+        ),
+    )
+
+def _structure_literal_parser(index, tokens):
+    success, index, result = _parenthese_wrapped_parser(_comma_separated_list_parser(symbol_expression_pair_parser))(index, tokens)
+    return (
+        success,
+        index,
+        FurStructureLiteralExpression(
+            fields=result,
+        ),
+    )
+
 def _list_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -162,22 +215,8 @@ def _list_literal_expression_parser(index, tokens):
     else:
         return failure
 
-def _negation_expression_parser(index, tokens):
-    failure = (False, index, None)
-
-    if tokens[index].match != '-':
-        return failure
-
-    success, index, value = _literal_level_expression_parser(index + 1, tokens)
-
-    if not success:
-        return failure
-
-    return (True, index, FurNegationExpression(value=value))
-
 def _literal_level_expression_parser(index, tokens):
     return _or_parser(
-        _negation_expression_parser,
         _list_item_expression_parser,
         _function_call_expression_parser,
         _parenthesized_expression_parser,
@@ -185,6 +224,33 @@ def _literal_level_expression_parser(index, tokens):
         _string_literal_expression_parser,
         _list_literal_expression_parser,
         _symbol_expression_parser,
+        _structure_literal_parser,
+    )(index, tokens)
+
+def _dot_expression_parser(index, tokens):
+    return _left_recursive_infix_operator_parser(
+        lambda token: token.type == 'period',
+        _literal_level_expression_parser,
+        'dot_level',
+    )(index, tokens)
+
+def _negation_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].match != '-':
+        return failure
+
+    success, index, value = _dot_expression_parser(index + 1, tokens)
+
+    if not success:
+        return failure
+
+    return (True, index, FurNegationExpression(value=value))
+
+def _negation_level_expression_parser(index, tokens):
+    return _or_parser(
+        _dot_expression_parser,
+        _negation_expression_parser,
     )(index, tokens)
 
 def _left_recursive_infix_operator_parser(operator_token_matcher, operand_parser, order):
@@ -218,7 +284,7 @@ def _left_recursive_infix_operator_parser(operator_token_matcher, operand_parser
 def _multiplication_level_expression_parser(index, tokens):
     return _left_recursive_infix_operator_parser(
         lambda token: token.type == 'multiplication_level_operator',
-        _literal_level_expression_parser,
+        _negation_level_expression_parser,
         'multiplication_level',
     )(index, tokens)
 
@@ -447,9 +513,6 @@ def _if_expression_parser(index, tokens):
             else_statement_list=else_statement_list,
         ),
     )
-
-
-
 
 _expression_parser = _or_parser(
     _or_level_expression_parser,

@@ -38,6 +38,14 @@ NormalNegationExpression = collections.namedtuple(
     ],
 )
 
+NormalDotExpression = collections.namedtuple(
+    'NormalDotExpression',
+    [
+        'instance',
+        'field',
+    ],
+)
+
 NormalInfixExpression = collections.namedtuple(
     'NormalInfixExpression',
     [
@@ -62,6 +70,14 @@ NormalArrayVariableInitializationStatement = collections.namedtuple(
     [
         'variable',
         'items',
+    ],
+)
+
+NormalSymbolArrayVariableInitializationStatement = collections.namedtuple(
+    'NormalSymbolArrayVariableInitializationStatement',
+    [
+        'variable',
+        'symbol_list',
     ],
 )
 
@@ -226,6 +242,72 @@ def normalize_string_literal_expression(counter, expression):
         ),
         NormalVariableExpression(variable=variable),
     )
+
+NormalStructureLiteralExpression = collections.namedtuple(
+    'NormalStructureLiteralExpression',
+    [
+        'field_count',
+        'symbol_list_variable',
+        'value_list_variable',
+    ],
+)
+
+def normalize_structure_literal_expression(counter, expression):
+    prestatements = []
+    field_symbol_array = []
+    field_value_array = []
+
+    for symbol_expression_pair in expression.fields:
+        counter, field_prestatements, field_expression = normalize_expression(
+            counter,
+            symbol_expression_pair.expression,
+        )
+
+        for p in field_prestatements:
+            prestatements.append(p)
+
+        field_symbol_array.append(symbol_expression_pair.symbol)
+        field_value_array.append(field_expression)
+
+    symbol_array_variable = '${}'.format(counter)
+    counter += 1
+
+    prestatements.append(
+        NormalSymbolArrayVariableInitializationStatement(
+            variable=symbol_array_variable,
+            symbol_list=tuple(field_symbol_array),
+        )
+    )
+
+    value_array_variable = '${}'.format(counter)
+    counter += 1
+
+    prestatements.append(
+        NormalArrayVariableInitializationStatement(
+            variable=value_array_variable,
+            items=tuple(field_value_array),
+        )
+    )
+
+    variable = '${}'.format(counter)
+
+    prestatements.append(
+        NormalVariableInitializationStatement(
+            variable=variable,
+            expression=NormalStructureLiteralExpression(
+                field_count=len(expression.fields),
+                symbol_list_variable=symbol_array_variable,
+                value_list_variable=value_array_variable,
+            ),
+        )
+    )
+
+    return (
+        counter + 1,
+        tuple(prestatements),
+        NormalVariableExpression(variable=variable),
+    )
+
 
 def normalize_symbol_expression(counter, expression):
     variable = '${}'.format(counter)
@@ -448,12 +530,33 @@ def normalize_boolean_expression(counter, expression):
         NormalVariableExpression(variable=result_variable),
     )
 
+def normalize_dot_expression(counter, expression):
+    assert isinstance(expression.right, parsing.FurSymbolExpression)
+
+    counter, prestatements, left_expression = normalize_expression(counter, expression.left)
+
+    variable = '${}'.format(counter)
+
+    dot_expression_prestatement = NormalVariableInitializationStatement(
+        variable=variable,
+        expression=NormalDotExpression(
+            instance=left_expression,
+            field=expression.right.symbol,
+        ),
+    )
+
+    return (
+        counter + 1,
+        prestatements + (dot_expression_prestatement,),
+        NormalVariableExpression(variable=variable),
+    )
 
 def normalize_infix_expression(counter, expression):
     return {
         'multiplication_level': normalize_basic_infix_operation,
         'addition_level': normalize_basic_infix_operation,
         'comparison_level': normalize_comparison_expression,
+        'dot_level': normalize_dot_expression,
         'and_level': normalize_boolean_expression,
         'or_level': normalize_boolean_expression,
     }[expression.order](counter, expression)
@@ -523,6 +626,7 @@ def normalize_expression(counter, expression):
         parsing.FurListItemExpression: normalize_list_item_expression,
         parsing.FurNegationExpression: normalize_negation_expression,
         parsing.FurStringLiteralExpression: normalize_string_literal_expression,
+        parsing.FurStructureLiteralExpression: normalize_structure_literal_expression,
         parsing.FurSymbolExpression: normalize_symbol_expression,
     }[type(expression)](counter, expression)
 

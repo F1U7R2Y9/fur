@@ -33,6 +33,24 @@ CSymbolExpression = collections.namedtuple(
     ],
 )
 
+CStructureLiteralExpression = collections.namedtuple(
+    'CStructureLiteralExpression',
+    [
+        'field_count',
+        'symbol_list_variable',
+        'value_list_variable',
+    ],
+)
+
+CDotExpression = collections.namedtuple(
+    'CDotExpression',
+    [
+        'instance',
+        'symbol',
+        'symbol_list_index',
+    ],
+)
+
 CNegationExpression = collections.namedtuple(
     'CNegationExpression',
     [
@@ -73,6 +91,15 @@ CArrayVariableInitializationStatement = collections.namedtuple(
     [
         'variable',
         'items',
+    ],
+)
+
+CSymbolArrayVariableInitializationStatement = collections.namedtuple(
+    'CSymbolArrayVariableInitializationStatement',
+    [
+        'variable',
+        'symbol_list',
+        'symbol_list_indices',
     ],
 )
 
@@ -148,6 +175,7 @@ BUILTINS = {
 }
 
 def transform_variable_expression(accumulators, expression):
+    assert isinstance(expression, normalization.NormalVariableExpression)
     return CVariableExpression(variable=expression.variable)
 
 def transform_string_literal_expression(accumulators, expression):
@@ -292,6 +320,27 @@ CListGetExpression = collections.namedtuple(
     ],
 )
 
+def transform_structure_literal_expression(accumulators, expression):
+    return CStructureLiteralExpression(
+        field_count=expression.field_count,
+        symbol_list_variable=expression.symbol_list_variable,
+        value_list_variable=expression.value_list_variable,
+    )
+
+def transform_dot_expression(accumulators, expression):
+    try:
+        symbol_list_index = accumulators.symbol_list.index(expression.field)
+
+    except ValueError:
+        symbol_list_index = len(accumulators.symbol_list)
+        accumulators.symbol_list.append(expression.field)
+
+    return CDotExpression(
+        instance=transform_variable_expression(accumulators, expression.instance),
+        symbol=expression.field,
+        symbol_list_index=symbol_list_index,
+    )
+
 def transform_list_construct_expression(accumulators, expression):
     return CListConstructExpression(allocate=expression.allocate)
 
@@ -314,12 +363,14 @@ def transform_expression(accumulators, expression):
         parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
         parsing.FurNegationExpression: transform_negation_expression,
         parsing.FurStringLiteralExpression: transform_string_literal_expression,
+        normalization.NormalDotExpression: transform_dot_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
         normalization.NormalInfixExpression: transform_infix_expression,
         normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
         normalization.NormalListConstructExpression: transform_list_construct_expression,
         normalization.NormalListGetExpression: transform_list_get_expression,
         normalization.NormalNegationExpression: transform_negation_expression,
+        normalization.NormalStructureLiteralExpression: transform_structure_literal_expression,
         normalization.NormalStringLiteralExpression: transform_string_literal_expression,
         normalization.NormalSymbolExpression: transform_symbol_expression,
         normalization.NormalVariableExpression: transform_variable_expression,
@@ -368,6 +419,24 @@ def transform_array_variable_initialization_statement(accumulators, statement):
         items=tuple(transform_expression(accumulators, i) for i in statement.items),
     )
 
+def transform_symbol_array_variable_initialization_statement(accumulators, statement):
+    symbol_list_indices = []
+
+    for symbol in statement.symbol_list:
+        try:
+            symbol_list_index = accumulators.symbol_list.index(symbol)
+        except ValueError:
+            symbol_list_index = len(accumulators.symbol_list)
+            accumulators.symbol_list.append(symbol)
+
+        symbol_list_indices.append(symbol_list_index)
+
+    return CSymbolArrayVariableInitializationStatement(
+        variable=statement.variable,
+        symbol_list=statement.symbol_list,
+        symbol_list_indices=tuple(symbol_list_indices),
+    )
+
 def transform_variable_initialization_statement(accumulators, statement):
     return CVariableInitializationStatement(
         variable=statement.variable,
@@ -403,6 +472,7 @@ def transform_statement(accumulators, statement):
         normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
         normalization.NormalIfElseStatement: transform_if_else_statement,
         normalization.NormalListAppendStatement: transform_list_append_statement,
+        normalization.NormalSymbolArrayVariableInitializationStatement: transform_symbol_array_variable_initialization_statement,
         normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)

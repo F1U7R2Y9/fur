@@ -1,0 +1,7 @@
+expressions = (
+  greeting: 'Hello',
+  farewell: 'Goodbye',
+)
+
+print(expressions.greeting, '\n')
+print(expressions.farewell, '\n')

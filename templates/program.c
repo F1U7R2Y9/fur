@@ -55,6 +55,7 @@ enum Type
   LIST,
   STRING_CONCATENATION,
   STRING_LITERAL,
+  STRUCTURE,
   VOID
 };
 
@@ -78,6 +79,16 @@ struct List
 struct StringConcatenation;
 typedef struct StringConcatenation StringConcatenation;
 
+struct Structure;
+typedef struct Structure Structure;
+struct Structure
+{
+  size_t reference_count;
+  size_t length;
+  const char** symbol_list;
+  Object* value_list;
+};
+
 union Instance
 {
   bool boolean;
@@ -86,6 +97,7 @@ union Instance
   List list;
   StringConcatenation* string_concatenation;
   const char* string_literal;
+  Structure* structure;
 };
 
 struct Object
@@ -135,6 +147,65 @@ Object List_get(Object* list, Object index)
   assert(index.type == INTEGER);
 
   return list->instance.list.items[index.instance.integer];
+}
+
+Object Object_rereference(Object self)
+{
+  switch(self.type)
+  {
+    case BOOLEAN:
+    case CLOSURE:
+    case INTEGER:
+    case STRING_LITERAL:
+    case VOID:
+      return self;
+
+    case STRING_CONCATENATION:
+      self.instance.string_concatenation->referenceCount++;
+      return self;
+
+    case STRUCTURE:
+      self.instance.structure->reference_count++;
+      return self;
+
+    default:
+      assert(false);
+  }
+}
+
+Object Structure_construct(size_t length, const char** symbol_list, Object* value_list)
+{
+  Structure* structure = malloc(sizeof(Structure));
+  structure->reference_count = 1;
+  structure->length = length;
+  structure->symbol_list = malloc(sizeof(const char*) * length);
+  structure->value_list = malloc(sizeof(Object) * length);
+
+  // TODO Don't allow assignment of mutable structures, as this screws up reference counting
+  for(size_t i = 0; i < length; i++)
+  {
+    structure->symbol_list[i] = symbol_list[i];
+    structure->value_list[i] = Object_rereference(value_list[i]);
+  }
+
+  Object result = { STRUCTURE, (Instance)structure };
+
+  return result;
+}
+
+Object Structure_get(Object* self, const char* symbol)
+{
+  assert(self->type == STRUCTURE);
+
+  for(size_t i = 0; i < self->instance.structure->length; i++)
+  {
+    if(self->instance.structure->symbol_list[i] == symbol)
+    {
+      return self->instance.structure->value_list[i];
+    }
+  }
+
+  assert(false);
 }
 
 struct EnvironmentNode
@@ -194,6 +265,21 @@ void Object_deinitialize(Object* self)
         Object_deinitialize(&(self->instance.string_concatenation->left));
         Object_deinitialize(&(self->instance.string_concatenation->right));
         free(self->instance.string_concatenation);
+      }
+      break;
+
+    case STRUCTURE:
+      self->instance.structure->reference_count--;
+
+      if(self->instance.structure->reference_count == 0)
+      {
+        for(size_t i = 0; i < self->instance.structure->length; i++)
+        {
+          Object_deinitialize(&(self->instance.structure->value_list[i]));
+        }
+        free(self->instance.structure->symbol_list);
+        free(self->instance.structure->value_list);
+        free(self->instance.structure);
       }
       break;
 
@@ -435,9 +521,6 @@ Object operator$concatenate(Object left, Object right)
 {
   switch(left.type) {
     case STRING_CONCATENATION:
-      left.instance.string_concatenation->referenceCount++;
-      break;
-
     case STRING_LITERAL:
       break;
 
@@ -447,9 +530,6 @@ Object operator$concatenate(Object left, Object right)
 
   switch(right.type) {
     case STRING_CONCATENATION:
-      right.instance.string_concatenation->referenceCount++;
-      break;
-
     case STRING_LITERAL:
       break;
 
@@ -459,8 +539,8 @@ Object operator$concatenate(Object left, Object right)
 
   StringConcatenation* concatenation = malloc(sizeof(StringConcatenation));
   concatenation->referenceCount = 1;
-  concatenation->left = left;
-  concatenation->right = right;
+  concatenation->left = Object_rereference(left);
+  concatenation->right = Object_rereference(right);
 
   Object result = { STRING_CONCATENATION, (Instance)concatenation };
   return result;

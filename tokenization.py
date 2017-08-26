@@ -38,6 +38,8 @@ _TOKEN_MATCHERS = [
     ('open_parenthese',                 r'\('),
     ('close_parenthese',                r'\)'),
     ('comma',                           r','),
+    ('colon',                           r':'),
+    ('period',                          r'\.'),
     ('integer_literal',                 r'\d+'),
     ('symbol',                          r'[a-z_]+'),
     ('single_quoted_string_literal',    r"'.*?'"),
