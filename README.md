@@ -12,6 +12,6 @@ programs to C. An example of usage:
     Hello, world~/fur$ 
 
 Fur is GPL and will only ever target GPL compilers. Fur supports closures, integer math, boolean
-logic, and strings (implemented as [ropes](https://en.wikipedia.org/wiki/Rope_(data_structure\))). It
-doesn't yet support exceptions, multithreading, modules, or anything resembling a standard library.
+logic, lists, and strings (implemented as [ropes](https://en.wikipedia.org/wiki/Rope_(data_structure\))).
+It doesn't yet support exceptions, multithreading, modules, or anything resembling a standard library.
 If that sounds like something you want to use in production code, good luck to you.
