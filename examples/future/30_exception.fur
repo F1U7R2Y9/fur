@@ -1,0 +1,3 @@
+variable = 42 // 0
+
+print('This should not print')

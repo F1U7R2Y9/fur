@@ -1,0 +1,13 @@
+def throws() do
+  try
+    42 // 0
+  except(DivisionByZeroError)
+    print('This should print\n')
+    42
+  end
+end
+
+variable = throws()
+
+print('This should also print\n')
+print('This should be 42: ', variable, '\n')

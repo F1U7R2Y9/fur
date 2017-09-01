@@ -1,0 +1,11 @@
+def throws() do
+  try
+    42 // 0
+  finally
+    print('This should print')
+  end
+end
+
+variable = throws()
+
+print('This should not print')
