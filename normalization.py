@@ -56,12 +56,18 @@ NormalInfixExpression = collections.namedtuple(
     ],
 )
 
+NormalPushStatement = collections.namedtuple(
+    'NormalPushStatement',
+    (
+        'expression',
+    ),
+)
+
 NormalFunctionCallExpression = collections.namedtuple(
     'NormalFunctionCallExpression',
     [
         'function_expression',
         'argument_count',
-        'argument_items',
     ],
 )
 
@@ -326,7 +332,6 @@ def normalize_function_call_expression(counter, expression):
     assert isinstance(expression, parsing.FurFunctionCallExpression)
 
     prestatements = []
-    arguments = []
 
     for argument in expression.arguments:
         counter, argument_prestatements, normalized_argument = normalize_expression(counter, argument)
@@ -341,18 +346,14 @@ def normalize_function_call_expression(counter, expression):
                 expression=normalized_argument,
             )
         )
-        arguments.append(NormalVariableExpression(
-            variable=variable,
-        ))
+        prestatements.append(
+            NormalPushStatement(
+                expression=NormalVariableExpression(
+                    variable=variable,
+                ),
+            ),
+        )
         counter += 1
-
-    arguments_variable = '${}'.format(counter)
-    counter += 1
-
-    prestatements.append(NormalArrayVariableInitializationStatement(
-        variable=arguments_variable,
-        items=tuple(arguments),
-    ))
 
     counter, function_prestatements, function_expression = normalize_expression(
         counter,
@@ -382,8 +383,7 @@ def normalize_function_call_expression(counter, expression):
             variable=result_variable,
             expression=NormalFunctionCallExpression(
                 function_expression=function_expression,
-                argument_count=len(arguments),
-                argument_items=NormalVariableExpression(variable=arguments_variable),
+                argument_count=len(expression.arguments),
             ),
         )
     )

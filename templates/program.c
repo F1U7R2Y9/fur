@@ -34,6 +34,8 @@ struct Environment;
 typedef struct Environment Environment;
 struct EnvironmentPool;
 typedef struct EnvironmentPool EnvironmentPool;
+struct Stack;
+typedef struct Stack Stack;
 
 const char* const STRING_LITERAL_LIST[] = {
 {% for string_literal in string_literal_list %}
@@ -64,7 +66,7 @@ typedef struct Closure Closure;
 struct Closure
 {
   Environment* closed;
-  Object (*call)(EnvironmentPool*, Environment*, size_t, Object*);
+  Object (*call)(EnvironmentPool*, Environment*, size_t, Stack*);
 };
 
 struct List;
@@ -147,6 +149,31 @@ Object List_get(Object* list, Object index)
   assert(index.type == INTEGER);
 
   return list->instance.list.items[index.instance.integer];
+}
+
+struct Stack
+{
+  uint16_t length;
+  Object items[256];
+};
+
+void Stack_initialize(Stack* self)
+{
+  self->length = 0;
+}
+
+void Stack_push(Stack* self, Object item)
+{
+  assert(self->length < 256);
+  self->items[self->length] = item;
+  self->length++;
+}
+
+Object Stack_pop(Stack* self)
+{
+  assert(self->length > 0);
+  self->length--;
+  return self->items[self->length];
 }
 
 Object Object_rereference(Object self)
@@ -560,12 +587,11 @@ Object operator${{ id.name }}(Object left, Object right)
 {% endfor %}
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
+Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack)
 {
-  assert(argc == 2);
-
-  Object base = args[0];
-  Object exponent = args[1];
+  // Must unload items in reverse order
+  Object exponent = Stack_pop(stack);
+  Object base = Stack_pop(stack);
 
   assert(base.type == INTEGER);
   assert(exponent.type == INTEGER);
@@ -580,11 +606,19 @@ Object builtin$pow = { CLOSURE, (Instance)(Closure){ NULL, builtin$pow$implement
 {% endif %}
 
 {% if 'print' in builtins %}
-Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Object* args)
+Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack)
 {
+  Stack reverse_stack;
+  Stack_initialize(&reverse_stack);
+
   for(size_t i = 0; i < argc; i++)
   {
-    Object output = args[i];
+    Stack_push(&reverse_stack, Stack_pop(stack));
+  }
+
+  while(reverse_stack.length > 0)
+  {
+    Object output = Stack_pop(&reverse_stack);
     switch(output.type)
     {
       case BOOLEAN:
@@ -601,8 +635,10 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
         break;
 
       case STRING_CONCATENATION:
-        builtin$print$implementation(NULL, NULL, 1, &(output.instance.string_concatenation->left));
-        builtin$print$implementation(NULL, NULL, 1, &(output.instance.string_concatenation->right));
+        Stack_push(stack, output.instance.string_concatenation->left);
+        builtin$print$implementation(NULL, NULL, 1, stack);
+        Stack_push(stack, output.instance.string_concatenation->right);
+        builtin$print$implementation(NULL, NULL, 1, stack);
         break;
 
       case STRING_LITERAL:
@@ -635,6 +671,10 @@ int main(int argc, char** argv)
   EnvironmentPool* environmentPool = EnvironmentPool_construct();
   Environment* environment = EnvironmentPool_allocate(environmentPool);
   Environment_initialize(environment, NULL);
+
+  Stack stackMemory;
+  Stack* stack = &stackMemory;
+  Stack_initialize(stack);
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}

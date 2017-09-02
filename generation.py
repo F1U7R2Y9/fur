@@ -82,12 +82,10 @@ def generate_function_call(function_call):
 
     # TODO Check the type of the things being called
     function_expression = generate_variable_expression(function_call.function_expression)
-    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, {})'.format(
+    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack)'.format(
         function_expression,
         function_expression,
         function_call.argument_count,
-        # TODO This is just a single item containing a reference to the items list--make that clearer
-        generate_expression(function_call.argument_items),
     )
 
 def generate_expression_statement(statement):
@@ -172,6 +170,9 @@ def generate_list_append_statement(statement):
         generate_expression(statement.item_expression),
     )
 
+def generate_push_statement(statement):
+    return 'Stack_push(stack, {});'.format(generate_expression(statement.expression))
+
 def generate_statement(statement):
     return {
         transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
@@ -179,6 +180,7 @@ def generate_statement(statement):
         transformation.CFunctionDeclaration: generate_function_declaration,
         transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CListAppendStatement: generate_list_append_statement,
+        transformation.CPushStatement: generate_push_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CSymbolArrayVariableInitializationStatement: generate_symbol_array_variable_initialization_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,

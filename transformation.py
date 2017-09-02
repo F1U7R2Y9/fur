@@ -67,12 +67,18 @@ CFunctionCallForFurInfixOperator = collections.namedtuple(
     ],
 )
 
+CPushStatement = collections.namedtuple(
+    'CPushStatement',
+    (
+        'expression',
+    ),
+)
+
 CFunctionCallExpression = collections.namedtuple(
     'CFunctionCallExpression',
     [
         'function_expression',
         'argument_count',
-        'argument_items',
     ],
 )
 
@@ -398,7 +404,6 @@ def transform_function_call_expression(accumulators, function_call):
     return CFunctionCallExpression(
         function_expression=transform_expression(accumulators, function_call.function_expression),
         argument_count=function_call.argument_count,
-        argument_items=transform_expression(accumulators, function_call.argument_items),
     )
 
 def transform_expression_statement(accumulators, statement):
@@ -463,6 +468,9 @@ def transform_function_definition_statement(accumulators, statement):
 
     return CFunctionDeclaration(name=statement.name)
 
+def transform_push_statement(accumulators, statement):
+    return CPushStatement(expression=transform_expression(accumulators, statement.expression))
+
 def transform_statement(accumulators, statement):
     return {
         parsing.FurExpressionStatement: transform_expression_statement,
@@ -472,6 +480,7 @@ def transform_statement(accumulators, statement):
         normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
         normalization.NormalIfElseStatement: transform_if_else_statement,
         normalization.NormalListAppendStatement: transform_list_append_statement,
+        normalization.NormalPushStatement: transform_push_statement,
         normalization.NormalSymbolArrayVariableInitializationStatement: transform_symbol_array_variable_initialization_statement,
         normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
         normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
