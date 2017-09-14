@@ -431,12 +431,55 @@ def normalize_basic_infix_operation(counter, expression):
         NormalVariableExpression(variable=center_variable),
     )
 
-def normalize_comparison_expression(counter, expression):
-    stack = []
+def desugar_ternary_comparison(counter, expression):
+    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left.left)
+    counter, middle_prestatements, middle_expression = normalize_expression(counter, expression.left.right)
 
-    while isinstance(expression.left, parsing.FurInfixExpression) and expression.order == 'comparison_level':
-        stack.append((expression.operator, expression.order, expression.right))
-        expression = expression.left
+    left_variable = '${}'.format(counter)
+    counter += 1
+    middle_variable = '${}'.format(counter)
+    counter += 1
+
+    juncture_prestatements = (
+        NormalVariableInitializationStatement(
+            variable=left_variable,
+            expression=left_expression,
+        ),
+        NormalVariableInitializationStatement(
+            variable=middle_variable,
+            expression=middle_expression,
+        )
+    )
+
+    counter, boolean_expression_prestatements, boolean_expression =  normalize_boolean_expression(
+        counter,
+        parsing.FurInfixExpression(
+            order='and_level',
+            operator='and',
+            left=parsing.FurInfixExpression(
+                order='comparison_level',
+                operator=expression.left.operator,
+                left=NormalVariableExpression(variable=left_variable),
+                right=NormalVariableExpression(variable=middle_variable),
+            ),
+            right=parsing.FurInfixExpression(
+                order='comparison_level',
+                operator=expression.operator,
+                left=NormalVariableExpression(variable=middle_variable),
+                right=expression.right,
+            ),
+        )
+    )
+
+    return (
+        counter,
+        left_prestatements + middle_prestatements + juncture_prestatements + boolean_expression_prestatements,
+        boolean_expression,
+    )
+
+def normalize_comparison_expression(counter, expression):
+    if isinstance(expression.left, parsing.FurInfixExpression) and expression.order == 'comparison_level':
+        return desugar_ternary_comparison(counter, expression)
 
     counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
     counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
@@ -467,29 +510,6 @@ def normalize_comparison_expression(counter, expression):
             right=NormalVariableExpression(variable=right_variable),
         ),
     )
-
-    while len(stack) > 0:
-        right_operator, right_order, right_expression = stack.pop()
-        and_right_expression = parsing.FurInfixExpression(
-            operator=right_operator,
-            order=right_order,
-            left=NormalVariableExpression(variable=right_variable),
-            right=right_expression,
-        )
-
-        and_expression = parsing.FurInfixExpression(
-            operator='and',
-            order='and_level',
-            left=result_expression,
-            right=and_right_expression,
-        )
-
-        counter, and_prestatements, result_expression = normalize_boolean_expression(
-            counter,
-            and_expression,
-        )
-
-        result_prestatements = result_prestatements + and_prestatements
 
     return (counter, result_prestatements, result_expression)
 

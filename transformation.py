@@ -243,31 +243,6 @@ FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR = {
 def transform_comparison_level_expression(accumulators, expression):
     accumulators.operator_set.add(FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator])
 
-    # Transform expressions like 1 < 2 < 3 into expressions like 1 < 2 && 2 < 3
-    if isinstance(expression.left, parsing.FurInfixExpression) and expression.left.order == 'comparison_level':
-        left = transform_comparison_level_expression(
-            accumulators,
-            expression.left
-        )
-
-        middle = left.right
-
-        right = transform_expression(
-            accumulators,
-            expression.right,
-        )
-
-        # TODO Don't evaluate the middle expression twice
-        return CFunctionCallForFurInfixOperator(
-            name='and',
-            left=left,
-            right=CFunctionCallForFurInfixOperator(
-                name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
-                left=middle,
-                right=right,
-            ),
-        )
-
     return CFunctionCallForFurInfixOperator(
         name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
         left=transform_expression(accumulators, expression.left),
