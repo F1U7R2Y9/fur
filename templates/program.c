@@ -544,8 +544,11 @@ Object operator$negate(Object input)
 }
 
 // TODO Make this conditionally added
-Object operator$concatenate(Object left, Object right)
+Object operator$concatenate(Stack* stack)
 {
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
   switch(left.type) {
     case STRING_CONCATENATION:
     case STRING_LITERAL:
@@ -574,8 +577,11 @@ Object operator$concatenate(Object left, Object right)
 }
 
 {% for id in infix_declarations %}
-Object operator${{ id.name }}(Object left, Object right)
+Object operator${{ id.name }}(Stack* stack)
 {
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
   assert(left.type == {{ id.in_type.upper() }});
   assert(right.type == {{ id.in_type.upper() }});
 

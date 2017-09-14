@@ -51,8 +51,6 @@ NormalInfixExpression = collections.namedtuple(
     [
         'order',
         'operator',
-        'left',
-        'right',
     ],
 )
 
@@ -398,29 +396,17 @@ def normalize_basic_infix_operation(counter, expression):
     counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
     counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
 
-    left_variable = '${}'.format(counter)
-    counter += 1
-    right_variable = '${}'.format(counter)
-    counter += 1
     center_variable = '${}'.format(counter)
     counter += 1
 
     root_prestatements = (
-        NormalVariableInitializationStatement(
-            variable=left_variable,
-            expression=left_expression,
-        ),
-        NormalVariableInitializationStatement(
-            variable=right_variable,
-            expression=right_expression,
-        ),
+        NormalPushStatement(expression=left_expression),
+        NormalPushStatement(expression=right_expression),
         NormalVariableInitializationStatement(
             variable=center_variable,
             expression=NormalInfixExpression(
                 order=expression.order,
                 operator=expression.operator,
-                left=NormalVariableExpression(variable=left_variable),
-                right=NormalVariableExpression(variable=right_variable),
             ),
         ),
     )
@@ -440,6 +426,7 @@ def desugar_ternary_comparison(counter, expression):
     middle_variable = '${}'.format(counter)
     counter += 1
 
+    # TODO Is there a memory leak if the middle expression throws an exception because the first expression result hasn't been added to the stack?
     juncture_prestatements = (
         NormalVariableInitializationStatement(
             variable=left_variable,

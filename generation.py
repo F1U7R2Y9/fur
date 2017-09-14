@@ -27,10 +27,8 @@ def generate_variable_expression(expression):
     return expression.variable
 
 def generate_function_call_for_fur_infix_operator(expression):
-    return 'operator${}({}, {})'.format(
+    return 'operator${}(stack)'.format(
         expression.name,
-        generate_expression(expression.left),
-        generate_expression(expression.right),
     )
 
 def generate_structure_literal_expression(expression):
