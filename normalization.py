@@ -481,37 +481,7 @@ def normalize_comparison_expression(counter, expression):
     if isinstance(expression.left, parsing.FurInfixExpression) and expression.order == 'comparison_level':
         return desugar_ternary_comparison(counter, expression)
 
-    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
-    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
-
-    left_variable = '${}'.format(counter)
-    counter += 1
-    right_variable = '${}'.format(counter)
-    counter += 1
-
-    root_prestatements = (
-        NormalVariableInitializationStatement(
-            variable=left_variable,
-            expression=left_expression,
-        ),
-        NormalVariableInitializationStatement(
-            variable=right_variable,
-            expression=right_expression,
-        ),
-    )
-
-    counter, result_prestatements, result_expression = (
-        counter,
-        left_prestatements + right_prestatements + root_prestatements,
-        NormalInfixExpression(
-            order=expression.order,
-            operator=expression.operator,
-            left=NormalVariableExpression(variable=left_variable),
-            right=NormalVariableExpression(variable=right_variable),
-        ),
-    )
-
-    return (counter, result_prestatements, result_expression)
+    return normalize_basic_infix_operation(counter, expression)
 
 def normalize_boolean_expression(counter, expression):
     counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
