@@ -27,7 +27,7 @@ def generate_variable_expression(expression):
     return expression.variable
 
 def generate_function_call_for_fur_infix_operator(expression):
-    return 'operator${}(stack)'.format(
+    return 'operator${}(stack, jump)'.format(
         expression.name,
     )
 
@@ -80,7 +80,7 @@ def generate_function_call(function_call):
 
     # TODO Check the type of the things being called
     function_expression = generate_variable_expression(function_call.function_expression)
-    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack)'.format(
+    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, jump)'.format(
         function_expression,
         function_expression,
         function_call.argument_count,

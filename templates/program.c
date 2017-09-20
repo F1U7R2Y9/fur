@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <inttypes.h>
+#include <setjmp.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,7 +67,7 @@ typedef struct Closure Closure;
 struct Closure
 {
   Environment* closed;
-  Object (*call)(EnvironmentPool*, Environment*, size_t, Stack*);
+  Object (*call)(EnvironmentPool*, Environment*, size_t, Stack*, jmp_buf);
 };
 
 struct List;
@@ -544,7 +545,7 @@ Object operator$negate(Object input)
 }
 
 // TODO Make this conditionally added
-Object operator$concatenate(Stack* stack)
+Object operator$concatenate(Stack* stack, jmp_buf parent_jump)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -577,7 +578,7 @@ Object operator$concatenate(Stack* stack)
 }
 
 {% for id in infix_declarations %}
-Object operator${{ id.name }}(Stack* stack)
+Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -593,7 +594,7 @@ Object operator${{ id.name }}(Stack* stack)
 {% endfor %}
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack)
+Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parent_jump)
 {
   // Must unload items in reverse order
   Object exponent = Stack_pop(stack);
@@ -612,7 +613,7 @@ Object builtin$pow = { CLOSURE, (Instance)(Closure){ NULL, builtin$pow$implement
 {% endif %}
 
 {% if 'print' in builtins %}
-Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack)
+Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parent_jump)
 {
   Stack reverse_stack;
   Stack_initialize(&reverse_stack);
@@ -642,9 +643,9 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
 
       case STRING_CONCATENATION:
         Stack_push(stack, output.instance.string_concatenation->left);
-        builtin$print$implementation(NULL, NULL, 1, stack);
+        builtin$print$implementation(NULL, NULL, 1, stack, parent_jump);
         Stack_push(stack, output.instance.string_concatenation->right);
-        builtin$print$implementation(NULL, NULL, 1, stack);
+        builtin$print$implementation(NULL, NULL, 1, stack, parent_jump);
         break;
 
       case STRING_LITERAL:
@@ -681,6 +682,15 @@ int main(int argc, char** argv)
   Stack stackMemory;
   Stack* stack = &stackMemory;
   Stack_initialize(stack);
+
+  jmp_buf jump;
+  if(setjmp(jump) != 0)
+  {
+    fprintf(stderr, "Error in __main__\n");
+    Environment_setLive(environment, false);
+    EnvironmentPool_destruct(environmentPool);
+    return 1;
+  }
 
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
