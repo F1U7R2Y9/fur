@@ -697,7 +697,9 @@ int main(int argc, char** argv)
     fprintf(stderr, "\tin __main__\n");
     Environment_setLive(environment, false);
     EnvironmentPool_destruct(environmentPool);
-    return 1;
+
+    // TODO We would like to return something nonzero here, but that messes up Valgrind so we couldn't catch memory leaks
+    return 0;
   }
 
   // TODO Use the symbol from SYMBOL_LIST
