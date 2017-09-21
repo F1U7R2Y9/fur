@@ -32,7 +32,7 @@ def add_example_output_test(filename):
             p = subprocess.Popen('./a.out', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             actual_stdout, actual_stderr = p.communicate()
 
-            expected_stdout_path = os.path.join('examples', filename + '.output.txt')
+            expected_stdout_path = os.path.join('examples', filename + '.stdout.txt')
 
             if os.path.isfile(expected_stdout_path):
                 with open(expected_stdout_path, 'rb') as f:
