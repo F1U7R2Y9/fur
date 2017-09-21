@@ -1,0 +1,5 @@
+def get_divided_answer() do
+  42 // 0
+end
+
+print(get_divided_answer())

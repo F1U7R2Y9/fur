@@ -8,7 +8,7 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
   if(setjmp(jump) != 0)
   {
     Environment_setLive(environment, false);
-    fprintf(stderr, "Error in {{name}}\n");
+    fprintf(stderr, "\tin {{name}}\n");
     longjmp(parent_jump, 1);
   }
 
