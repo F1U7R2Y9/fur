@@ -29,12 +29,26 @@ def add_example_output_test(filename):
             raise Exception('Example output "{}" did not compile'.format(filename + '.c'))
 
         try:
-            actual_output = subprocess.check_output(['./a.out'])
+            p = subprocess.Popen('./a.out', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            actual_stdout, actual_stderr = p.communicate()
 
-            with open(os.path.join('examples', filename + '.output.txt'), 'rb') as f:
-                expected_output = f.read()
+            expected_stdout_path = os.path.join('examples', filename + '.output.txt')
 
-            self.assertEqual(expected_output, actual_output)
+            if os.path.isfile(expected_stdout_path):
+                with open(expected_stdout_path, 'rb') as f:
+                    expected_stdout = f.read()
+            else:
+                expected_stdout = b''
+
+            expected_stderr_path = os.path.join('examples', filename + '.stderr.txt')
+
+            if os.path.isfile(expected_stderr_path):
+                with open(expected_stderr_path, 'rb') as f:
+                    expected_stderr = f.read()
+            else:
+                expected_stderr = b''
+
+            self.assertEqual(expected_stderr, actual_stderr)
 
             # We don't clean up the C file in the finally clause because it can be useful to have in case of errors
             os.remove(os.path.join('examples', filename + '.c'))
