@@ -586,6 +586,14 @@ Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump)
   assert(left.type == {{ id.in_type.upper() }});
   assert(right.type == {{ id.in_type.upper() }});
 
+  {% if id.name == 'integerDivide' or id.name == 'modularDivide' %}
+  if(right.instance.integer == 0)
+  {
+    fprintf(stderr, "DivisionByZeroError\n");
+    longjmp(parent_jump, 1);
+  }
+  {% endif %}
+
   Object result;
   result.type = {{ id.out_type.upper() }};
   result.instance.{{ id.out_type.lower() }} = left.instance.{{ id.in_type.lower() }} {{ id.operator }} right.instance.{{ id.in_type.lower() }};
@@ -686,10 +694,12 @@ int main(int argc, char** argv)
   jmp_buf jump;
   if(setjmp(jump) != 0)
   {
-    fprintf(stderr, "Error in __main__\n");
+    fprintf(stderr, "\tin __main__\n");
     Environment_setLive(environment, false);
     EnvironmentPool_destruct(environmentPool);
-    return 1;
+
+    // TODO We would like to return something nonzero here, but that messes up Valgrind so we couldn't catch memory leaks
+    return 0;
   }
 
   // TODO Use the symbol from SYMBOL_LIST

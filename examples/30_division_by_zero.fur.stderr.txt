@@ -1,0 +1,3 @@
+DivisionByZeroError
+	in get_divided_answer
+	in __main__

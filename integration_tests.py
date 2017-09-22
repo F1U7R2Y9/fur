@@ -95,7 +95,7 @@ def add_example_memory_leak_test(filename):
                         '--show-reachable=yes',
                         '--num-callers=20',
                         '--track-fds=yes',
-                        '--error-exitcode=666',
+                        '--error-exitcode=42',
                         '-q',
                         './a.out',
                     ],
