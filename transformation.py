@@ -61,6 +61,7 @@ CNegationExpression = collections.namedtuple(
 CFunctionCallForFurInfixOperator = collections.namedtuple(
     'CFunctionCallForFurInfixOperator',
     [
+        'metadata',
         'name',
     ],
 )
@@ -240,6 +241,7 @@ FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR = {
 
 def transform_infix_operator_without_c_equivalent(accumulators, expression):
     return CFunctionCallForFurInfixOperator(
+        metadata=expression.metadata,
         name='concatenate',
     )
 
@@ -250,6 +252,7 @@ def transform_infix_expression(accumulators, expression):
     accumulators.operator_set.add(FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator])
 
     return CFunctionCallForFurInfixOperator(
+        metadata=expression.metadata,
         name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
     )
 

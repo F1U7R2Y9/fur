@@ -545,7 +545,7 @@ Object operator$negate(Object input)
 }
 
 // TODO Make this conditionally added
-Object operator$concatenate(Stack* stack, jmp_buf parent_jump)
+Object operator$concatenate(Stack* stack, jmp_buf parent_jump, size_t line)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -578,7 +578,7 @@ Object operator$concatenate(Stack* stack, jmp_buf parent_jump)
 }
 
 {% for id in infix_declarations %}
-Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump)
+Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump, size_t line)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -589,7 +589,7 @@ Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump)
   {% if id.name == 'integerDivide' or id.name == 'modularDivide' %}
   if(right.instance.integer == 0)
   {
-    fprintf(stderr, "DivisionByZeroError\n");
+    fprintf(stderr, "DivisionByZeroError on line %zu\n", line);
     longjmp(parent_jump, 1);
   }
   {% endif %}

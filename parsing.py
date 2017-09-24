@@ -36,6 +36,14 @@ def _zero_or_more_parser(formatter, parser):
 
     return result_parser
 
+NodeMetadata = collections.namedtuple(
+    'NodeMetadata',
+    [
+        'index',
+        'line',
+    ],
+)
+
 FurIntegerLiteralExpression = collections.namedtuple(
     'FurIntegerLiteralExpression',
     [
@@ -67,6 +75,7 @@ FurNegationExpression = collections.namedtuple(
 FurInfixExpression = collections.namedtuple(
     'FurInfixExpression',
     [
+        'metadata',
         'order',
         'operator',
         'left',
@@ -270,6 +279,10 @@ def _left_recursive_infix_operator_parser(operator_token_matcher, operand_parser
 
             if success:
                 result = FurInfixExpression(
+                    metadata=NodeMetadata(
+                        index=tokens[index].index,
+                        line=tokens[index].line,
+                    ),
                     order=order,
                     operator=tokens[index].match,
                     left=result,

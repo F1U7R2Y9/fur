@@ -49,6 +49,7 @@ NormalDotExpression = collections.namedtuple(
 NormalInfixExpression = collections.namedtuple(
     'NormalInfixExpression',
     [
+        'metadata',
         'order',
         'operator',
     ],
@@ -405,6 +406,7 @@ def normalize_basic_infix_operation(counter, expression):
         NormalVariableInitializationStatement(
             variable=center_variable,
             expression=NormalInfixExpression(
+                metadata=expression.metadata,
                 order=expression.order,
                 operator=expression.operator,
             ),
@@ -441,15 +443,18 @@ def desugar_ternary_comparison(counter, expression):
     counter, boolean_expression_prestatements, boolean_expression =  normalize_boolean_expression(
         counter,
         parsing.FurInfixExpression(
+            metadata=expression.left.metadata,
             order='and_level',
             operator='and',
             left=parsing.FurInfixExpression(
+                metadata=expression.left.metadata,
                 order='comparison_level',
                 operator=expression.left.operator,
                 left=NormalVariableExpression(variable=left_variable),
                 right=NormalVariableExpression(variable=middle_variable),
             ),
             right=parsing.FurInfixExpression(
+                metadata=expression.metadata,
                 order='comparison_level',
                 operator=expression.operator,
                 left=NormalVariableExpression(variable=middle_variable),

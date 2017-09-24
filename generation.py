@@ -27,8 +27,9 @@ def generate_variable_expression(expression):
     return expression.variable
 
 def generate_function_call_for_fur_infix_operator(expression):
-    return 'operator${}(stack, jump)'.format(
+    return 'operator${}(stack, jump, {})'.format(
         expression.name,
+        expression.metadata.line,
     )
 
 def generate_structure_literal_expression(expression):
