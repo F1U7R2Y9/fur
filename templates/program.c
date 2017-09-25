@@ -163,6 +163,11 @@ void Stack_initialize(Stack* self)
   self->length = 0;
 }
 
+bool Stack_any(Stack* self)
+{
+  return self->length > 0;
+}
+
 void Stack_push(Stack* self, Object item)
 {
   assert(self->length < 256);
@@ -695,6 +700,12 @@ int main(int argc, char** argv)
   if(setjmp(jump) != 0)
   {
     fprintf(stderr, "\tin __main__\n");
+
+    while(Stack_any(stack))
+    {
+      Object item = Stack_pop(stack);
+      Object_deinitialize(&item);
+    }
     Environment_setLive(environment, false);
     EnvironmentPool_destruct(environmentPool);
 
