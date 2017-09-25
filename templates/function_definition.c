@@ -1,5 +1,5 @@
 
-Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* parentStack, jmp_buf parent_jump)
+Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* parentStack, jmp_buf parentJump)
 {
   Environment* environment = EnvironmentPool_allocate(environmentPool);
   Environment_initialize(environment, parent);
@@ -20,7 +20,7 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
     }
     Environment_setLive(environment, false);
 
-    longjmp(parent_jump, 1);
+    longjmp(parentJump, 1);
   }
 
   Object result = builtin$nil;

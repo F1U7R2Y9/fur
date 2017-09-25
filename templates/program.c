@@ -550,7 +550,7 @@ Object operator$negate(Object input)
 }
 
 // TODO Make this conditionally added
-Object operator$concatenate(Stack* stack, jmp_buf parent_jump, size_t line)
+Object operator$concatenate(Stack* stack, jmp_buf parentJump, size_t line)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -583,7 +583,7 @@ Object operator$concatenate(Stack* stack, jmp_buf parent_jump, size_t line)
 }
 
 {% for id in infix_declarations %}
-Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump, size_t line)
+Object operator${{ id.name }}(Stack* stack, jmp_buf parentJump, size_t line)
 {
   Object right = Stack_pop(stack);
   Object left = Stack_pop(stack);
@@ -595,7 +595,7 @@ Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump, size_t line)
   if(right.instance.integer == 0)
   {
     fprintf(stderr, "DivisionByZeroError on line %zu\n", line);
-    longjmp(parent_jump, 1);
+    longjmp(parentJump, 1);
   }
   {% endif %}
 
@@ -607,7 +607,7 @@ Object operator${{ id.name }}(Stack* stack, jmp_buf parent_jump, size_t line)
 {% endfor %}
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parent_jump)
+Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parentJump)
 {
   // Must unload items in reverse order
   Object exponent = Stack_pop(stack);
@@ -626,7 +626,7 @@ Object builtin$pow = { CLOSURE, (Instance)(Closure){ NULL, builtin$pow$implement
 {% endif %}
 
 {% if 'print' in builtins %}
-Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parent_jump)
+Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parentJump)
 {
   Stack reverse_stack;
   Stack_initialize(&reverse_stack);
@@ -656,9 +656,9 @@ Object builtin$print$implementation(EnvironmentPool* environmentPool, Environmen
 
       case STRING_CONCATENATION:
         Stack_push(stack, output.instance.string_concatenation->left);
-        builtin$print$implementation(NULL, NULL, 1, stack, parent_jump);
+        builtin$print$implementation(NULL, NULL, 1, stack, parentJump);
         Stack_push(stack, output.instance.string_concatenation->right);
-        builtin$print$implementation(NULL, NULL, 1, stack, parent_jump);
+        builtin$print$implementation(NULL, NULL, 1, stack, parentJump);
         break;
 
       case STRING_LITERAL:
