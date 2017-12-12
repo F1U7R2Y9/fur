@@ -522,6 +522,13 @@ Environment* EnvironmentPool_allocate(EnvironmentPool* self)
   return EnvironmentPool_allocate(previous->overflow);
 }
 
+Environment* Environment_construct(EnvironmentPool* environmentPool, Environment* parent)
+{
+  Environment* environment = EnvironmentPool_allocate(environmentPool);
+  Environment_initialize(environment, parent);
+  return environment;
+}
+
 Object integerLiteral(int32_t literal)
 {
   Object result;

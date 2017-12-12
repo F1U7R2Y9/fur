@@ -1,8 +1,7 @@
 
-Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* parentStack, jmp_buf parentJump)
+Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* environment, size_t argc, Stack* parentStack, jmp_buf parentJump)
 {
-  Environment* environment = EnvironmentPool_allocate(environmentPool);
-  Environment_initialize(environment, parent);
+  environment = Environment_construct(environmentPool, environment);
 
   Stack stackMemory;
   Stack* stack = &stackMemory;
@@ -33,6 +32,7 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
   {{ statement }}
   {% endfor %}
 
+  // TODO Set the environment back to the parent environment
   Environment_setLive(environment, false);
   return result;
 }
