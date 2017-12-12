@@ -163,6 +163,18 @@ void Stack_initialize(Stack* self)
   self->length = 0;
 }
 
+Stack* Stack_construct()
+{
+  Stack* result = malloc(sizeof(Stack));
+  Stack_initialize(result);
+  return result;
+}
+
+void Stack_destruct(Stack* self)
+{
+  free(self);
+}
+
 bool Stack_any(Stack* self)
 {
   return self->length > 0;

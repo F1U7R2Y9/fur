@@ -3,9 +3,7 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
 {
   environment = Environment_construct(environmentPool, environment);
 
-  Stack stackMemory;
-  Stack* stack = &stackMemory;
-  Stack_initialize(stack);
+  Stack* stack = Stack_construct();
 
   jmp_buf jump;
   if(setjmp(jump) != 0)
@@ -18,6 +16,8 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
       Object_deinitialize(&item);
     }
     Environment_setLive(environment, false);
+
+    Stack_destruct(stack);
 
     longjmp(parentJump, 1);
   }
@@ -34,5 +34,7 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
 
   // TODO Set the environment back to the parent environment
   Environment_setLive(environment, false);
+
+  Stack_destruct(stack);
   return result;
 }
