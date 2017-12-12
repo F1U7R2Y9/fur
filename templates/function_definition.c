@@ -1,9 +1,8 @@
 
-Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* environment, size_t argc, Stack* parentStack, jmp_buf parentJump)
+Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* environment, size_t argc, Stack* stack, jmp_buf parentJump)
 {
   environment = Environment_construct(environmentPool, environment);
 
-  Stack* stack = Stack_construct();
   StackSnapshot stackSnapshot = Stack_takeSnapshot(stack);
 
   jmp_buf jump;
@@ -14,15 +13,13 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
     Stack_rewind(stack, stackSnapshot);
     Environment_setLive(environment, false);
 
-    Stack_destruct(stack);
-
     longjmp(parentJump, 1);
   }
 
   Object result = builtin$nil;
 
   {% for argument_name in argument_name_list|reverse %}
-  Environment_set(environment, "{{ argument_name }}", Stack_pop(parentStack));
+  Environment_set(environment, "{{ argument_name }}", Stack_pop(stack));
   {% endfor %}
 
   {% for statement in statement_list %}
@@ -31,7 +28,5 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
 
   // TODO Set the environment back to the parent environment
   Environment_setLive(environment, false);
-
-  Stack_destruct(stack);
   return result;
 }
