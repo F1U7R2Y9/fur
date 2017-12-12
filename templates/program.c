@@ -333,6 +333,22 @@ void Object_deinitialize(Object* self)
   }
 }
 
+typedef uint32_t StackSnapshot;
+
+StackSnapshot Stack_takeSnapshot(Stack* self)
+{
+  return (StackSnapshot) self->length;
+}
+
+void Stack_rewind(Stack* self, StackSnapshot snapshot)
+{
+  while(self->length > snapshot)
+  {
+    Object item = Stack_pop(self);
+    Object_deinitialize(&item);
+  }
+}
+
 void Environment_deinitialize(Environment* self)
 {
   EnvironmentNode* next;

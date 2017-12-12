@@ -4,17 +4,14 @@ Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environmen
   environment = Environment_construct(environmentPool, environment);
 
   Stack* stack = Stack_construct();
+  StackSnapshot stackSnapshot = Stack_takeSnapshot(stack);
 
   jmp_buf jump;
   if(setjmp(jump) != 0)
   {
     fprintf(stderr, "\tin {{name}}\n");
 
-    while(Stack_any(stack))
-    {
-      Object item = Stack_pop(stack);
-      Object_deinitialize(&item);
-    }
+    Stack_rewind(stack, stackSnapshot);
     Environment_setLive(environment, false);
 
     Stack_destruct(stack);
