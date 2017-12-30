@@ -1,5 +1,10 @@
 
-Object user${{name}}$implementation(EnvironmentPool* environmentPool, Environment* environment, size_t argc, Stack* stack, jmp_buf parentJump)
+Object user${{name}}$implementation(
+    EnvironmentPool* environmentPool,
+    Environment* environment,
+    size_t argc,
+    Stack* stack,
+    jmp_buf parentJump)
 {
   environment = Environment_construct(environmentPool, environment);
 
