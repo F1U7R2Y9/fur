@@ -1,3 +1,2 @@
-This should only print once.
-This should print exactly twice.
-This should print exactly twice.
+This should print exactly once.
+This should also print exactly once.
