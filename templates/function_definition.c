@@ -4,6 +4,7 @@ Object user${{name}}$implementation(
     Environment* environment,
     size_t argc,
     Stack* stack,
+    const unsigned long line,
     jmp_buf parentJump)
 {
   environment = Environment_construct(environmentPool, environment);
@@ -13,7 +14,7 @@ Object user${{name}}$implementation(
   jmp_buf jump;
   if(setjmp(jump) != 0)
   {
-    fprintf(stderr, "\tin {{name}}\n");
+    fprintf(stderr, "\tin {{name}} on line %zu\n", line);
 
     Stack_rewind(stack, stackSnapshot);
     Environment_setLive(environment, false);

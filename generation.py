@@ -26,24 +26,11 @@ def generate_symbol_expression(symbol_expression):
 def generate_variable_expression(expression):
     return expression.variable
 
-def generate_function_call_for_fur_infix_operator(expression):
-    return 'operator${}(stack, jump, {})'.format(
-        expression.name,
-        expression.metadata.line,
-    )
-
 def generate_structure_literal_expression(expression):
     return 'Structure_construct({}, {}, {})'.format(
         expression.field_count,
         expression.symbol_list_variable,
         expression.value_list_variable,
-    )
-
-def generate_dot_expression(expression):
-    return 'Structure_get(&{}, SYMBOL_LIST[{}] /* symbol: "{}" */)'.format(
-        generate_variable_expression(expression.instance),
-        expression.symbol_list_index,
-        expression.symbol,
     )
 
 def generate_list_construct_expression(expression):
@@ -57,23 +44,15 @@ def generate_list_get_expression(expression):
 
 def generate_expression(expression):
     return {
-        transformation.CDotExpression: generate_dot_expression,
         transformation.CFunctionCallExpression: generate_function_call,
-        transformation.CFunctionCallForFurInfixOperator: generate_function_call_for_fur_infix_operator,
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CListConstructExpression: generate_list_construct_expression,
         transformation.CListGetExpression: generate_list_get_expression,
-        transformation.CNegationExpression: generate_negation_expression,
         transformation.CStringLiteral: generate_string_literal,
         transformation.CStructureLiteralExpression: generate_structure_literal_expression,
         transformation.CSymbolExpression: generate_symbol_expression,
         transformation.CVariableExpression: generate_variable_expression,
     }[type(expression)](expression)
-
-def generate_negation_expression(c_negation_expression):
-    return 'operator$negate({})'.format(
-        generate_expression(c_negation_expression.value)
-    )
 
 def generate_function_call(function_call):
     # This gets called twice, so we want to be sure it is efficient and without side effects
@@ -81,10 +60,11 @@ def generate_function_call(function_call):
 
     # TODO Check the type of the things being called
     function_expression = generate_variable_expression(function_call.function_expression)
-    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, jump)'.format(
+    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, {}, jump)'.format(
         function_expression,
         function_expression,
         function_call.argument_count,
+        function_call.metadata.line,
     )
 
 def generate_expression_statement(statement):

@@ -42,30 +42,6 @@ CStructureLiteralExpression = collections.namedtuple(
     ],
 )
 
-CDotExpression = collections.namedtuple(
-    'CDotExpression',
-    [
-        'instance',
-        'symbol',
-        'symbol_list_index',
-    ],
-)
-
-CNegationExpression = collections.namedtuple(
-    'CNegationExpression',
-    [
-        'value',
-    ],
-)
-
-CFunctionCallForFurInfixOperator = collections.namedtuple(
-    'CFunctionCallForFurInfixOperator',
-    [
-        'metadata',
-        'name',
-    ],
-)
-
 CPushStatement = collections.namedtuple(
     'CPushStatement',
     (
@@ -75,10 +51,11 @@ CPushStatement = collections.namedtuple(
 
 CFunctionCallExpression = collections.namedtuple(
     'CFunctionCallExpression',
-    [
+    (
+        'metadata',
         'function_expression',
         'argument_count',
-    ],
+    ),
 )
 
 # TODO We are currently not changing variables, just preventing them from being accessed.
@@ -209,60 +186,8 @@ def transform_symbol_expression(accumulators, expression):
         symbol_list_index=symbol_list_index,
     )
 
-CInfixDeclaration = collections.namedtuple(
-    'CInfixDeclaration',
-    [
-        'name',
-        'in_type',
-        'out_type',
-        'operator',
-    ],
-)
-
-FUR_INFIX_OPERATOR_TO_C_FUNCTION = {
-    '++':   'concatenate',
-}
-
-FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR = {
-    '+':    CInfixDeclaration(name='add', in_type='integer', out_type='integer', operator='+'),
-    '-':    CInfixDeclaration(name='subtract', in_type='integer', out_type='integer', operator='-'),
-    '*':    CInfixDeclaration(name='multiply', in_type='integer', out_type='integer', operator='*'),
-    '//':   CInfixDeclaration(name='integerDivide', in_type='integer', out_type='integer', operator='/'),
-    '%':    CInfixDeclaration(name='modularDivide', in_type='integer', out_type='integer', operator='%'),
-    'and':  CInfixDeclaration(name='and', in_type='boolean', out_type='boolean', operator='&&'),
-    'or':   CInfixDeclaration(name='or', in_type='boolean', out_type='boolean', operator='||'),
-    '==':   CInfixDeclaration(name='equals', in_type='integer', out_type='boolean', operator='=='),
-    '!=':   CInfixDeclaration(name='notEquals', in_type='integer', out_type='boolean', operator='!='),
-    '<=':   CInfixDeclaration(name='lessThanOrEqual', in_type='integer', out_type='boolean', operator='<='),
-    '>=':   CInfixDeclaration(name='greaterThanOrEqual', in_type='integer', out_type='boolean', operator='>='),
-    '<':    CInfixDeclaration(name='lessThan', in_type='integer', out_type='boolean', operator='<'),
-    '>':    CInfixDeclaration(name='greaterThan', in_type='integer', out_type='boolean', operator='>'),
-}
-
-def transform_infix_operator_without_c_equivalent(accumulators, expression):
-    return CFunctionCallForFurInfixOperator(
-        metadata=expression.metadata,
-        name='concatenate',
-    )
-
-def transform_infix_expression(accumulators, expression):
-    if expression.operator in FUR_INFIX_OPERATOR_TO_C_FUNCTION:
-        return transform_infix_operator_without_c_equivalent(accumulators, expression)
-
-    accumulators.operator_set.add(FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator])
-
-    return CFunctionCallForFurInfixOperator(
-        metadata=expression.metadata,
-        name=FUR_INFIX_OPERATOR_TO_C_INFIX_OPERATOR[expression.operator].name,
-    )
-
 def transform_integer_literal_expression(accumulators, expression):
     return CIntegerLiteral(value=expression.integer)
-
-def transform_negation_expression(accumulators, expression):
-    return CNegationExpression(
-        value=transform_expression(accumulators, expression.internal_expression),
-    )
 
 CListConstructExpression = collections.namedtuple(
     'CListConstructExpression',
@@ -294,20 +219,6 @@ def transform_structure_literal_expression(accumulators, expression):
         value_list_variable=expression.value_list_variable,
     )
 
-def transform_dot_expression(accumulators, expression):
-    try:
-        symbol_list_index = accumulators.symbol_list.index(expression.field)
-
-    except ValueError:
-        symbol_list_index = len(accumulators.symbol_list)
-        accumulators.symbol_list.append(expression.field)
-
-    return CDotExpression(
-        instance=transform_variable_expression(accumulators, expression.instance),
-        symbol=expression.field,
-        symbol_list_index=symbol_list_index,
-    )
-
 def transform_list_construct_expression(accumulators, expression):
     return CListConstructExpression(allocate=expression.allocate)
 
@@ -324,19 +235,11 @@ def transform_list_append_statement(accumulators, expression):
     )
 
 def transform_expression(accumulators, expression):
-    # TODO Clean up handlers for parsing expressions
     return {
-        parsing.FurInfixExpression: transform_infix_expression,
-        parsing.FurIntegerLiteralExpression: transform_integer_literal_expression,
-        parsing.FurNegationExpression: transform_negation_expression,
-        parsing.FurStringLiteralExpression: transform_string_literal_expression,
-        normalization.NormalDotExpression: transform_dot_expression,
         normalization.NormalFunctionCallExpression: transform_function_call_expression,
-        normalization.NormalInfixExpression: transform_infix_expression,
         normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
         normalization.NormalListConstructExpression: transform_list_construct_expression,
         normalization.NormalListGetExpression: transform_list_get_expression,
-        normalization.NormalNegationExpression: transform_negation_expression,
         normalization.NormalStructureLiteralExpression: transform_structure_literal_expression,
         normalization.NormalStringLiteralExpression: transform_string_literal_expression,
         normalization.NormalSymbolExpression: transform_symbol_expression,
@@ -363,6 +266,7 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
 def transform_function_call_expression(accumulators, function_call):
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(
+        metadata=function_call.metadata,
         function_expression=transform_expression(accumulators, function_call.function_expression),
         argument_count=function_call.argument_count,
     )
@@ -434,7 +338,6 @@ def transform_push_statement(accumulators, statement):
 
 def transform_statement(accumulators, statement):
     return {
-        parsing.FurExpressionStatement: transform_expression_statement,
         normalization.NormalArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
         normalization.NormalAssignmentStatement: transform_symbol_assignment_statement,
         normalization.NormalExpressionStatement: transform_expression_statement,
