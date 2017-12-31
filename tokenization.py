@@ -5,12 +5,19 @@ import util
 
 Token = collections.namedtuple(
     'Token',
-    [
+    (
         'type',
         'match',
+        'metadata',
+    ),
+)
+
+NodeMetadata = collections.namedtuple(
+    'NodeMetadata',
+    (
         'index',
         'line',
-    ],
+    ),
 )
 
 def _make_token_matcher(definition):
@@ -26,7 +33,14 @@ def _make_token_matcher(definition):
         return (
             True,
             index + len(match.group()),
-            Token(type=name, match=match.group(), index=index, line=line),
+            Token(
+                type=name,
+                match=match.group(),
+                metadata=NodeMetadata(
+                    index=index,
+                    line=line,
+                ),
+            ),
         )
 
     return token_matcher

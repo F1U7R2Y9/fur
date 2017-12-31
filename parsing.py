@@ -36,14 +36,6 @@ def _zero_or_more_parser(formatter, parser):
 
     return result_parser
 
-NodeMetadata = collections.namedtuple(
-    'NodeMetadata',
-    [
-        'index',
-        'line',
-    ],
-)
-
 FurIntegerLiteralExpression = collections.namedtuple(
     'FurIntegerLiteralExpression',
     [
@@ -141,10 +133,7 @@ def _symbol_expression_parser(index, tokens):
             True,
             index + 1,
             FurSymbolExpression(
-                metadata=NodeMetadata(
-                    index=tokens[index].index,
-                    line=tokens[index].line,
-                ),
+                metadata=tokens[index].metadata,
                 symbol=tokens[index].match,
             ),
         )
@@ -261,10 +250,7 @@ def _negation_expression_parser(index, tokens):
     if tokens[index].match != '-':
         return failure
 
-    metadata = NodeMetadata(
-        index=tokens[index].index,
-        line=tokens[index].line,
-    )
+    metadata = tokens[index].metadata
 
     success, index, value = _dot_expression_parser(index + 1, tokens)
 
@@ -296,10 +282,7 @@ def _left_recursive_infix_operator_parser(operator_token_matcher, operand_parser
 
             if success:
                 result = FurInfixExpression(
-                    metadata=NodeMetadata(
-                        index=tokens[index].index,
-                        line=tokens[index].line,
-                    ),
+                    metadata=tokens[index].metadata,
                     order=order,
                     operator=tokens[index].match,
                     left=result,
@@ -393,6 +376,7 @@ FurListItemExpression = collections.namedtuple(
 FurFunctionCallExpression = collections.namedtuple(
     'FurFunctionCallExpression',
     [
+        'metadata',
         'function',
         'arguments',
     ],
@@ -442,10 +426,7 @@ def _list_item_expression_parser(index, tokens):
     if not success:
         return failure
 
-    metadata = NodeMetadata(
-        index=tokens[index].index,
-        line=tokens[index].line,
-    )
+    metadata = tokens[index].metadata
 
     success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(
         index,
@@ -464,10 +445,7 @@ def _list_item_expression_parser(index, tokens):
             index_expression=index_expression,
         )
 
-        metadata = NodeMetadata(
-            index=tokens[index].index,
-            line=tokens[index].line,
-        )
+        metadata = tokens[index].metadata
 
         success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(
             index,
@@ -489,6 +467,8 @@ def _function_call_expression_parser(index, tokens):
     if not success:
         return failure
 
+    metadata = tokens[index].metadata
+
     success, index, arguments = _parenthese_wrapped_parser(_comma_separated_expression_list_parser)(
         index,
         tokens,
@@ -501,9 +481,12 @@ def _function_call_expression_parser(index, tokens):
         # "function" is actually the full function call if the next parse attempt doesn't succeed
         # We can't give this a better name without a bunch of checks, however.
         function = FurFunctionCallExpression(
+            metadata=metadata,
             function=function,
             arguments=arguments,
         )
+
+        metadata = tokens[index].metadata
 
         success, index, arguments = _parenthese_wrapped_parser(_comma_separated_expression_list_parser)(
             index,
@@ -578,7 +561,7 @@ def _assignment_statement_parser(index, tokens):
 
     if tokens[index].type == 'symbol':
         target = tokens[index].match
-        target_assignment_line = tokens[index].line
+        target_assignment_line = tokens[index].metadata.line
 
         index += 1
     else:

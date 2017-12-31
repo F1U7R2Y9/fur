@@ -5,6 +5,7 @@ import parsing
 DesugaredFunctionCallExpression = collections.namedtuple(
     'DesugaredFunctionCallExpression',
     (
+        'metadata',
         'function',
         'argument_list',
     ),
@@ -96,6 +97,7 @@ DesugaredProgram = collections.namedtuple(
 
 def desugar_function_call_expression(expression):
     return DesugaredFunctionCallExpression(
+        metadata=expression.metadata,
         function=desugar_expression(expression.function),
         argument_list=tuple(desugar_expression(e) for e in expression.arguments),
     )
@@ -142,6 +144,7 @@ def desugar_infix_expression(expression):
 
     if expression.operator == '.':
         return DesugaredFunctionCallExpression(
+            metadata=expression.metadata,
             function=DesugaredSymbolExpression(
                 metadata=expression.metadata,
                 symbol='__field__',
@@ -168,6 +171,7 @@ def desugar_infix_expression(expression):
     }[expression.operator]
 
     return DesugaredFunctionCallExpression(
+        metadata=expression.metadata,
         function=DesugaredSymbolExpression(
             metadata=expression.metadata,
             symbol=function,
@@ -185,6 +189,7 @@ def desugar_integer_literal_expression(expression):
 
 def desugar_list_item_expression(expression):
     return DesugaredFunctionCallExpression(
+        metadata=expression.metadata,
         function=DesugaredSymbolExpression(
             metadata=expression.metadata,
             symbol='__get__',
@@ -202,6 +207,7 @@ def desugar_list_literal_expression(expression):
 
 def desugar_negation_expression(expression):
     return DesugaredFunctionCallExpression(
+        metadata=expression.metadata,
         function=DesugaredSymbolExpression(
             metadata=expression.metadata,
             symbol='__negate__',
