@@ -61,6 +61,7 @@ FurStringLiteralExpression = collections.namedtuple(
 FurSymbolExpression = collections.namedtuple(
     'FurSymbolExpression',
     [
+        'metadata',
         'symbol',
     ],
 )
@@ -68,6 +69,7 @@ FurSymbolExpression = collections.namedtuple(
 FurNegationExpression = collections.namedtuple(
     'FurNegationExpression',
     [
+        'metadata',
         'value',
     ],
 )
@@ -135,7 +137,17 @@ def _string_literal_expression_parser(index, tokens):
 
 def _symbol_expression_parser(index, tokens):
     if tokens[index].type == 'symbol':
-        return (True, index + 1, FurSymbolExpression(symbol=tokens[index].match))
+        return (
+            True,
+            index + 1,
+            FurSymbolExpression(
+                metadata=NodeMetadata(
+                    index=tokens[index].index,
+                    line=tokens[index].line,
+                ),
+                symbol=tokens[index].match,
+            ),
+        )
 
     return (False, index, None)
 
@@ -249,12 +261,17 @@ def _negation_expression_parser(index, tokens):
     if tokens[index].match != '-':
         return failure
 
+    metadata = NodeMetadata(
+        index=tokens[index].index,
+        line=tokens[index].line,
+    )
+
     success, index, value = _dot_expression_parser(index + 1, tokens)
 
     if not success:
         return failure
 
-    return (True, index, FurNegationExpression(value=value))
+    return (True, index, FurNegationExpression(metadata=metadata, value=value))
 
 def _negation_level_expression_parser(index, tokens):
     return _or_parser(
@@ -368,6 +385,7 @@ FurListItemExpression = collections.namedtuple(
     'FurListItemExpression',
     [
         'list_expression',
+        'metadata',
         'index_expression',
     ],
 )
@@ -424,6 +442,11 @@ def _list_item_expression_parser(index, tokens):
     if not success:
         return failure
 
+    metadata = NodeMetadata(
+        index=tokens[index].index,
+        line=tokens[index].line,
+    )
+
     success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(
         index,
         tokens,
@@ -437,7 +460,13 @@ def _list_item_expression_parser(index, tokens):
         # We can't give this a better name without a bunch of checks, however.
         list_expression = FurListItemExpression(
             list_expression=list_expression,
+            metadata=metadata,
             index_expression=index_expression,
+        )
+
+        metadata = NodeMetadata(
+            index=tokens[index].index,
+            line=tokens[index].line,
         )
 
         success, index, index_expression = _bracket_wrapped_parser(_expression_parser)(

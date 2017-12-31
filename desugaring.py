@@ -58,6 +58,7 @@ DesugaredStructureLiteralExpression = collections.namedtuple(
 DesugaredSymbolExpression = collections.namedtuple(
     'DesugaredSymbolExpression',
     (
+        'metadata',
         'symbol',
     ),
 )
@@ -114,7 +115,12 @@ def desugar_infix_expression(expression):
                 DesugaredExpressionStatement(expression=desugar_expression(expression.right)),
             ),
             else_statement_list=(
-                DesugaredExpressionStatement(expression=DesugaredSymbolExpression(symbol='false')),
+                DesugaredExpressionStatement(
+                    expression=DesugaredSymbolExpression(
+                        metadata=expression.metadata,
+                        symbol='false',
+                    ),
+                ),
             ),
         )
 
@@ -122,7 +128,12 @@ def desugar_infix_expression(expression):
         return DesugaredIfExpression(
             condition_expression=desugar_expression(expression.left),
             if_statement_list=(
-                DesugaredExpressionStatement(expression=DesugaredSymbolExpression(symbol='true')),
+                DesugaredExpressionStatement(
+                    expression=DesugaredSymbolExpression(
+                        metadata=expression.metadata,
+                        symbol='true',
+                    ),
+                ),
             ),
             else_statement_list=(
                 DesugaredExpressionStatement(expression=desugar_expression(expression.right)),
@@ -131,7 +142,10 @@ def desugar_infix_expression(expression):
 
     if expression.operator == '.':
         return DesugaredFunctionCallExpression(
-            function=DesugaredSymbolExpression(symbol='__field__'),
+            function=DesugaredSymbolExpression(
+                metadata=expression.metadata,
+                symbol='__field__',
+            ),
             argument_list=(
                 desugar_expression(expression.left),
                 DesugaredStringLiteralExpression(string=expression.right.symbol),
@@ -155,6 +169,7 @@ def desugar_infix_expression(expression):
 
     return DesugaredFunctionCallExpression(
         function=DesugaredSymbolExpression(
+            metadata=expression.metadata,
             symbol=function,
         ),
         argument_list=(
@@ -170,7 +185,10 @@ def desugar_integer_literal_expression(expression):
 
 def desugar_list_item_expression(expression):
     return DesugaredFunctionCallExpression(
-        function=DesugaredSymbolExpression(symbol='__get__'),
+        function=DesugaredSymbolExpression(
+            metadata=expression.metadata,
+            symbol='__get__',
+        ),
         argument_list=(
             desugar_expression(expression.list_expression),
             desugar_expression(expression.index_expression),
@@ -184,7 +202,10 @@ def desugar_list_literal_expression(expression):
 
 def desugar_negation_expression(expression):
     return DesugaredFunctionCallExpression(
-        function=DesugaredSymbolExpression(symbol='__negate__'),
+        function=DesugaredSymbolExpression(
+            metadata=expression.metadata,
+            symbol='__negate__',
+        ),
         argument_list=(
             desugar_expression(expression.value),
         ),
@@ -207,6 +228,7 @@ def desugar_structure_literal_expression(expression):
 
 def desugar_symbol_expression(expression):
     return DesugaredSymbolExpression(
+        metadata=expression.metadata,
         symbol=expression.symbol,
     )
 
