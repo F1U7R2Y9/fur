@@ -660,8 +660,275 @@ Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment*
 Object builtin$pow = { CLOSURE, (Instance)(Closure){ NULL, builtin$pow$implementation } };
 {% endif %}
 
+Object builtin$negate$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 1);
+
+  Object argument = Stack_pop(stack);
+
+  assert(argument.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (-argument.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$negate = { CLOSURE, (Instance)(Closure){ NULL, builtin$negate$implementation } };
+
+{% for op in ['lt', 'gt', 'lte', 'gte', 'eq', 'neq'] %}
+Object builtin${{ op }}$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  {% if op == 'lt' %}
+  if(left.instance.integer < right.instance.integer)
+  {% elif op == 'gt' %}
+  if(left.instance.integer > right.instance.integer)
+  {% elif op == 'lte' %}
+  if(left.instance.integer <= right.instance.integer)
+  {% elif op == 'gte' %}
+  if(left.instance.integer >= right.instance.integer)
+  {% elif op == 'eq' %}
+  if(left.instance.integer == right.instance.integer)
+  {% elif op == 'neq' %}
+  if(left.instance.integer != right.instance.integer)
+  {% endif %}
+  {
+    return builtin$true;
+  }
+  else
+  {
+    return builtin$false;
+  }
+}
+Object builtin${{ op }} = { CLOSURE, (Instance)(Closure){ NULL, builtin${{ op }}$implementation } };
+{% endfor %}
+
+Object builtin$concat$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  switch(left.type) {
+    case STRING_CONCATENATION:
+    case STRING_LITERAL:
+      break;
+
+    default:
+      assert(false);
+  }
+
+  switch(right.type) {
+    case STRING_CONCATENATION:
+    case STRING_LITERAL:
+      break;
+
+    default:
+      assert(false);
+  }
+
+  StringConcatenation* concatenation = malloc(sizeof(StringConcatenation));
+  concatenation->referenceCount = 1;
+  concatenation->left = Object_rereference(left);
+  concatenation->right = Object_rereference(right);
+
+  Object result = { STRING_CONCATENATION, (Instance)concatenation };
+  return result;
+}
+Object builtin$concat = { CLOSURE, (Instance)(Closure){ NULL, builtin$concat$implementation } };
+
+Object builtin$add$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer + right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$add = { CLOSURE, (Instance)(Closure){ NULL, builtin$add$implementation } };
+
+Object builtin$subtract$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer - right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$subtract = { CLOSURE, (Instance)(Closure){ NULL, builtin$subtract$implementation } };
+
+Object builtin$multiply$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer * right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$multiply = { CLOSURE, (Instance)(Closure){ NULL, builtin$multiply$implementation } };
+
+Object builtin$integer_divide$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer / right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$integer_divide = { CLOSURE, (Instance)(Closure){ NULL, builtin$integer_divide$implementation } };
+
+Object builtin$modular_divide$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == INTEGER);
+  assert(right.type == INTEGER);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer % right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$modular_divide = { CLOSURE, (Instance)(Closure){ NULL, builtin$modular_divide$implementation } };
+
+Object builtin$field$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  assert(left.type == STRUCTURE);
+  assert(right.type == STRING_LITERAL);
+
+  Object result = (Object){
+    INTEGER,
+    (Instance)(int32_t) (left.instance.integer % right.instance.integer)
+  };
+
+  return result;
+}
+Object builtin$field = { CLOSURE, (Instance)(Closure){ NULL, builtin$field$implementation } };
+
+Object builtin$get$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
+{
+  assert(argc == 2);
+
+  Object right = Stack_pop(stack);
+  Object left = Stack_pop(stack);
+
+  return List_get(&left, right);
+}
+Object builtin$get = { CLOSURE, (Instance)(Closure){ NULL, builtin$get$implementation } };
+
 {% if 'print' in builtins %}
-Object builtin$print$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parentJump)
+Object builtin$print$implementation(
+  EnvironmentPool* environmentPool,
+  Environment* parent,
+  size_t argc,
+  Stack* stack,
+  jmp_buf parentJump)
 {
   Stack reverse_stack;
   Stack_initialize(&reverse_stack);
@@ -751,6 +1018,22 @@ int main(int argc, char** argv)
   // TODO Use the symbol from SYMBOL_LIST
   {% for builtin in builtins %}
   Environment_set(environment, "{{ builtin }}", builtin${{ builtin }});
+  {% endfor %}
+
+  Environment_set(environment, "true", builtin$true);
+  Environment_set(environment, "false", builtin$false);
+  Environment_set(environment, "__add__", builtin$add);
+  Environment_set(environment, "__subtract__", builtin$subtract);
+  Environment_set(environment, "__multiply__", builtin$multiply);
+  Environment_set(environment, "__integer_divide__", builtin$integer_divide);
+  Environment_set(environment, "__modular_divide__", builtin$modular_divide);
+  Environment_set(environment, "__negate__", builtin$negate);
+  Environment_set(environment, "__concat__", builtin$concat);
+  Environment_set(environment, "__field__", builtin$field);
+  Environment_set(environment, "__get__", builtin$get);
+
+  {% for op in ['lt', 'gt', 'lte', 'gte', 'eq', 'neq'] %}
+  Environment_set(environment, "__{{ op }}__", builtin${{ op }});
   {% endfor %}
 
   {% for statement in statements %}

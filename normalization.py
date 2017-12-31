@@ -1,7 +1,10 @@
 import collections
 
-import parsing
+import desugaring
 import util
+
+# TODO Get rid of this, we should only be receiving desugared things
+import parsing
 
 NormalVariableExpression = collections.namedtuple(
     'NormalVariableExpression',
@@ -328,11 +331,16 @@ def normalize_symbol_expression(counter, expression):
     )
 
 def normalize_function_call_expression(counter, expression):
-    assert isinstance(expression, parsing.FurFunctionCallExpression)
-
     prestatements = []
 
-    for argument in expression.arguments:
+    if isinstance(expression, parsing.FurFunctionCallExpression):
+        argument_list = expression.arguments
+    elif isinstance(expression, desugaring.DesugaredFunctionCallExpression):
+        argument_list = expression.argument_list
+    else:
+        raise Exception('Unexpected "{}"'.format(type(expression)))
+
+    for argument in argument_list:
         counter, argument_prestatements, normalized_argument = normalize_expression(counter, argument)
 
         for s in argument_prestatements:
@@ -382,7 +390,7 @@ def normalize_function_call_expression(counter, expression):
             variable=result_variable,
             expression=NormalFunctionCallExpression(
                 function_expression=function_expression,
-                argument_count=len(expression.arguments),
+                argument_count=len(argument_list),
             ),
         )
     )
@@ -600,6 +608,13 @@ def normalize_expression(counter, expression):
     return {
         NormalInfixExpression: fake_normalization,
         NormalVariableExpression: fake_normalization,
+        desugaring.DesugaredFunctionCallExpression: normalize_function_call_expression,
+        desugaring.DesugaredIfExpression: normalize_if_expression,
+        desugaring.DesugaredIntegerLiteralExpression: normalize_integer_literal_expression,
+        desugaring.DesugaredListLiteralExpression: normalize_list_literal_expression,
+        desugaring.DesugaredStringLiteralExpression: normalize_string_literal_expression,
+        desugaring.DesugaredStructureLiteralExpression: normalize_structure_literal_expression,
+        desugaring.DesugaredSymbolExpression: normalize_symbol_expression,
         parsing.FurFunctionCallExpression: normalize_function_call_expression,
         parsing.FurIfExpression: normalize_if_expression,
         parsing.FurInfixExpression: normalize_infix_expression,
@@ -654,6 +669,9 @@ def normalize_assignment_statement(counter, statement):
 
 def normalize_statement(counter, statement):
     return {
+        desugaring.DesugaredAssignmentStatement: normalize_assignment_statement,
+        desugaring.DesugaredExpressionStatement: normalize_expression_statement,
+        desugaring.DesugaredFunctionDefinitionStatement: normalize_function_definition_statement,
         parsing.FurAssignmentStatement: normalize_assignment_statement,
         parsing.FurExpressionStatement: normalize_expression_statement,
         parsing.FurFunctionDefinitionStatement: normalize_function_definition_statement,
