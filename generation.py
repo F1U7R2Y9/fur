@@ -81,10 +81,11 @@ def generate_function_call(function_call):
 
     # TODO Check the type of the things being called
     function_expression = generate_variable_expression(function_call.function_expression)
-    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, jump)'.format(
+    return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, {}, jump)'.format(
         function_expression,
         function_expression,
         function_call.argument_count,
+        function_call.metadata.line,
     )
 
 def generate_expression_statement(statement):

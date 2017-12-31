@@ -68,6 +68,7 @@ NormalPushStatement = collections.namedtuple(
 NormalFunctionCallExpression = collections.namedtuple(
     'NormalFunctionCallExpression',
     [
+        'metadata',
         'function_expression',
         'argument_count',
     ],
@@ -389,6 +390,7 @@ def normalize_function_call_expression(counter, expression):
         NormalVariableInitializationStatement(
             variable=result_variable,
             expression=NormalFunctionCallExpression(
+                metadata=expression.metadata,
                 function_expression=function_expression,
                 argument_count=len(argument_list),
             ),

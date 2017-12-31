@@ -75,10 +75,11 @@ CPushStatement = collections.namedtuple(
 
 CFunctionCallExpression = collections.namedtuple(
     'CFunctionCallExpression',
-    [
+    (
+        'metadata',
         'function_expression',
         'argument_count',
-    ],
+    ),
 )
 
 # TODO We are currently not changing variables, just preventing them from being accessed.
@@ -363,6 +364,7 @@ def transform_symbol_assignment_statement(accumulators, assignment_statement):
 def transform_function_call_expression(accumulators, function_call):
     # TODO Use the symbol from SYMBOL LIST
     return CFunctionCallExpression(
+        metadata=function_call.metadata,
         function_expression=transform_expression(accumulators, function_call.function_expression),
         argument_count=function_call.argument_count,
     )

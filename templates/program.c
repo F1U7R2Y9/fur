@@ -67,7 +67,7 @@ typedef struct Closure Closure;
 struct Closure
 {
   Environment* closed;
-  Object (*call)(EnvironmentPool*, Environment*, size_t, Stack*, jmp_buf);
+  Object (*call)(EnvironmentPool*, Environment*, size_t, Stack*, const unsigned long, jmp_buf);
 };
 
 struct List;
@@ -642,7 +642,13 @@ Object operator${{ id.name }}(Stack* stack, jmp_buf parentJump, size_t line)
 {% endfor %}
 
 {% if 'pow' in builtins %}
-Object builtin$pow$implementation(EnvironmentPool* environmentPool, Environment* parent, size_t argc, Stack* stack, jmp_buf parentJump)
+Object builtin$pow$implementation(
+    EnvironmentPool* environmentPool,
+    Environment* parent,
+    size_t argc,
+    Stack* stack,
+    const unsigned long line,
+    jmp_buf parentJump)
 {
   // Must unload items in reverse order
   Object exponent = Stack_pop(stack);
@@ -665,6 +671,7 @@ Object builtin$negate$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 1);
@@ -688,6 +695,7 @@ Object builtin${{ op }}$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -727,6 +735,7 @@ Object builtin$concat$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -767,6 +776,7 @@ Object builtin$add$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -791,6 +801,7 @@ Object builtin$subtract$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -815,6 +826,7 @@ Object builtin$multiply$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -839,6 +851,7 @@ Object builtin$integer_divide$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -848,6 +861,12 @@ Object builtin$integer_divide$implementation(
 
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
+
+  if(right.instance.integer == 0)
+  {
+    fprintf(stderr, "DivisionByZeroError on line %zu\n", line);
+    longjmp(parentJump, 1);
+  }
 
   Object result = (Object){
     INTEGER,
@@ -863,6 +882,7 @@ Object builtin$modular_divide$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -872,6 +892,12 @@ Object builtin$modular_divide$implementation(
 
   assert(left.type == INTEGER);
   assert(right.type == INTEGER);
+
+  if(right.instance.integer == 0)
+  {
+    fprintf(stderr, "DivisionByZeroError on line %zu\n", line);
+    longjmp(parentJump, 1);
+  }
 
   Object result = (Object){
     INTEGER,
@@ -887,6 +913,7 @@ Object builtin$field$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -911,6 +938,7 @@ Object builtin$get$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   assert(argc == 2);
@@ -928,6 +956,7 @@ Object builtin$print$implementation(
   Environment* parent,
   size_t argc,
   Stack* stack,
+  const unsigned long line,
   jmp_buf parentJump)
 {
   Stack reverse_stack;
@@ -958,9 +987,9 @@ Object builtin$print$implementation(
 
       case STRING_CONCATENATION:
         Stack_push(stack, output.instance.string_concatenation->left);
-        builtin$print$implementation(NULL, NULL, 1, stack, parentJump);
+        builtin$print$implementation(NULL, NULL, 1, stack, line, parentJump);
         Stack_push(stack, output.instance.string_concatenation->right);
-        builtin$print$implementation(NULL, NULL, 1, stack, parentJump);
+        builtin$print$implementation(NULL, NULL, 1, stack, line, parentJump);
         break;
 
       case STRING_LITERAL:

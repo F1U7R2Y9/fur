@@ -4,6 +4,7 @@ Object user${{name}}$implementation(
     Environment* environment,
     size_t argc,
     Stack* stack,
+    const unsigned long line,
     jmp_buf parentJump)
 {
   environment = Environment_construct(environmentPool, environment);
