@@ -3,9 +3,6 @@ import collections
 import desugaring
 import util
 
-# TODO Get rid of this, we should only be receiving desugared things
-import parsing
-
 NormalVariableExpression = collections.namedtuple(
     'NormalVariableExpression',
     [
@@ -31,30 +28,6 @@ NormalSymbolExpression = collections.namedtuple(
     'NormalSymbolExpression',
     [
         'symbol',
-    ],
-)
-
-NormalNegationExpression = collections.namedtuple(
-    'NormalNegationExpression',
-    [
-        'internal_expression',
-    ],
-)
-
-NormalDotExpression = collections.namedtuple(
-    'NormalDotExpression',
-    [
-        'instance',
-        'field',
-    ],
-)
-
-NormalInfixExpression = collections.namedtuple(
-    'NormalInfixExpression',
-    [
-        'metadata',
-        'order',
-        'operator',
     ],
 )
 
@@ -145,9 +118,6 @@ NormalProgram = collections.namedtuple(
         'statement_list',
     ],
 )
-
-def fake_normalization(counter, thing):
-    return (counter, (), thing)
 
 def normalize_integer_literal_expression(counter, expression):
     variable = '${}'.format(counter)
@@ -334,14 +304,7 @@ def normalize_symbol_expression(counter, expression):
 def normalize_function_call_expression(counter, expression):
     prestatements = []
 
-    if isinstance(expression, parsing.FurFunctionCallExpression):
-        argument_list = expression.arguments
-    elif isinstance(expression, desugaring.DesugaredFunctionCallExpression):
-        argument_list = expression.argument_list
-    else:
-        raise Exception('Unexpected "{}"'.format(type(expression)))
-
-    for argument in argument_list:
+    for argument in expression.argument_list:
         counter, argument_prestatements, normalized_argument = normalize_expression(counter, argument)
 
         for s in argument_prestatements:
@@ -392,7 +355,7 @@ def normalize_function_call_expression(counter, expression):
             expression=NormalFunctionCallExpression(
                 metadata=expression.metadata,
                 function_expression=function_expression,
-                argument_count=len(argument_list),
+                argument_count=len(expression.argument_list),
             ),
         )
     )
@@ -402,156 +365,6 @@ def normalize_function_call_expression(counter, expression):
         tuple(prestatements),
         NormalVariableExpression(variable=result_variable),
     )
-
-def normalize_basic_infix_operation(counter, expression):
-    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
-    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
-
-    center_variable = '${}'.format(counter)
-    counter += 1
-
-    root_prestatements = (
-        NormalPushStatement(expression=left_expression),
-        NormalPushStatement(expression=right_expression),
-        NormalVariableInitializationStatement(
-            variable=center_variable,
-            expression=NormalInfixExpression(
-                metadata=expression.metadata,
-                order=expression.order,
-                operator=expression.operator,
-            ),
-        ),
-    )
-
-    return (
-        counter,
-        left_prestatements + right_prestatements + root_prestatements,
-        NormalVariableExpression(variable=center_variable),
-    )
-
-def desugar_ternary_comparison(counter, expression):
-    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left.left)
-    counter, middle_prestatements, middle_expression = normalize_expression(counter, expression.left.right)
-
-    left_variable = '${}'.format(counter)
-    counter += 1
-    middle_variable = '${}'.format(counter)
-    counter += 1
-
-    # TODO Is there a memory leak if the middle expression throws an exception because the first expression result hasn't been added to the stack?
-    juncture_prestatements = (
-        NormalVariableInitializationStatement(
-            variable=left_variable,
-            expression=left_expression,
-        ),
-        NormalVariableInitializationStatement(
-            variable=middle_variable,
-            expression=middle_expression,
-        )
-    )
-
-    counter, boolean_expression_prestatements, boolean_expression =  normalize_boolean_expression(
-        counter,
-        parsing.FurInfixExpression(
-            metadata=expression.left.metadata,
-            order='and_level',
-            operator='and',
-            left=parsing.FurInfixExpression(
-                metadata=expression.left.metadata,
-                order='comparison_level',
-                operator=expression.left.operator,
-                left=NormalVariableExpression(variable=left_variable),
-                right=NormalVariableExpression(variable=middle_variable),
-            ),
-            right=parsing.FurInfixExpression(
-                metadata=expression.metadata,
-                order='comparison_level',
-                operator=expression.operator,
-                left=NormalVariableExpression(variable=middle_variable),
-                right=expression.right,
-            ),
-        )
-    )
-
-    return (
-        counter,
-        left_prestatements + middle_prestatements + juncture_prestatements + boolean_expression_prestatements,
-        boolean_expression,
-    )
-
-def normalize_comparison_expression(counter, expression):
-    if isinstance(expression.left, parsing.FurInfixExpression) and expression.order == 'comparison_level':
-        return desugar_ternary_comparison(counter, expression)
-
-    return normalize_basic_infix_operation(counter, expression)
-
-def normalize_boolean_expression(counter, expression):
-    counter, left_prestatements, left_expression = normalize_expression(counter, expression.left)
-    counter, right_prestatements, right_expression = normalize_expression(counter, expression.right)
-
-    result_variable = '${}'.format(counter)
-    if_else_prestatment = NormalVariableInitializationStatement(
-        variable=result_variable,
-        expression=left_expression,
-    )
-    counter += 1
-
-    condition_expression=NormalVariableExpression(variable=result_variable)
-    short_circuited_statements = right_prestatements + (NormalVariableReassignmentStatement(variable=result_variable, expression=right_expression),)
-
-    if expression.operator == 'and':
-        if_else_statement = NormalIfElseStatement(
-            condition_expression=condition_expression,
-            if_statement_list=short_circuited_statements,
-            else_statement_list=(),
-        )
-
-    elif expression.operator == 'or':
-        if_else_statement = NormalIfElseStatement(
-            condition_expression=condition_expression,
-            if_statement_list=(),
-            else_statement_list=short_circuited_statements,
-        )
-
-    else:
-        raise Exception('Unable to handle operator "{}"'.format(expression.operator))
-
-    return (
-        counter,
-        left_prestatements + (if_else_prestatment, if_else_statement),
-        NormalVariableExpression(variable=result_variable),
-    )
-
-def normalize_dot_expression(counter, expression):
-    assert isinstance(expression.right, parsing.FurSymbolExpression)
-
-    counter, prestatements, left_expression = normalize_expression(counter, expression.left)
-
-    variable = '${}'.format(counter)
-
-    dot_expression_prestatement = NormalVariableInitializationStatement(
-        variable=variable,
-        expression=NormalDotExpression(
-            instance=left_expression,
-            field=expression.right.symbol,
-        ),
-    )
-
-    return (
-        counter + 1,
-        prestatements + (dot_expression_prestatement,),
-        NormalVariableExpression(variable=variable),
-    )
-
-def normalize_infix_expression(counter, expression):
-    return {
-        'multiplication_level': normalize_basic_infix_operation,
-        'addition_level': normalize_basic_infix_operation,
-        'comparison_level': normalize_comparison_expression,
-        'dot_level': normalize_dot_expression,
-        'and_level': normalize_boolean_expression,
-        'or_level': normalize_boolean_expression,
-    }[expression.order](counter, expression)
 
 def normalize_if_expression(counter, expression):
     counter, condition_prestatements, condition_expression = normalize_expression(
@@ -589,27 +402,8 @@ def normalize_if_expression(counter, expression):
         NormalVariableExpression(variable=result_variable),
     )
 
-def normalize_negation_expression(counter, expression):
-    counter, prestatements, internal_expression = normalize_expression(counter, expression.value)
-
-    internal_variable = '${}'.format(counter)
-    counter += 1
-
-    return (
-        counter,
-        prestatements + (
-            NormalVariableInitializationStatement(
-                variable=internal_variable,
-                expression=internal_expression,
-            ),
-        ),
-        NormalNegationExpression(internal_expression=NormalVariableExpression(variable=internal_variable)),
-    )
-
 def normalize_expression(counter, expression):
     return {
-        NormalInfixExpression: fake_normalization,
-        NormalVariableExpression: fake_normalization,
         desugaring.DesugaredFunctionCallExpression: normalize_function_call_expression,
         desugaring.DesugaredIfExpression: normalize_if_expression,
         desugaring.DesugaredIntegerLiteralExpression: normalize_integer_literal_expression,
@@ -617,16 +411,6 @@ def normalize_expression(counter, expression):
         desugaring.DesugaredStringLiteralExpression: normalize_string_literal_expression,
         desugaring.DesugaredStructureLiteralExpression: normalize_structure_literal_expression,
         desugaring.DesugaredSymbolExpression: normalize_symbol_expression,
-        parsing.FurFunctionCallExpression: normalize_function_call_expression,
-        parsing.FurIfExpression: normalize_if_expression,
-        parsing.FurInfixExpression: normalize_infix_expression,
-        parsing.FurIntegerLiteralExpression: normalize_integer_literal_expression,
-        parsing.FurListLiteralExpression: normalize_list_literal_expression,
-        parsing.FurListItemExpression: normalize_list_item_expression,
-        parsing.FurNegationExpression: normalize_negation_expression,
-        parsing.FurStringLiteralExpression: normalize_string_literal_expression,
-        parsing.FurStructureLiteralExpression: normalize_structure_literal_expression,
-        parsing.FurSymbolExpression: normalize_symbol_expression,
     }[type(expression)](counter, expression)
 
 def normalize_expression_statement(counter, statement):
@@ -674,9 +458,6 @@ def normalize_statement(counter, statement):
         desugaring.DesugaredAssignmentStatement: normalize_assignment_statement,
         desugaring.DesugaredExpressionStatement: normalize_expression_statement,
         desugaring.DesugaredFunctionDefinitionStatement: normalize_function_definition_statement,
-        parsing.FurAssignmentStatement: normalize_assignment_statement,
-        parsing.FurExpressionStatement: normalize_expression_statement,
-        parsing.FurFunctionDefinitionStatement: normalize_function_definition_statement,
     }[type(statement)](counter, statement)
 
 @util.force_generator(tuple)
