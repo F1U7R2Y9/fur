@@ -1,7 +1,7 @@
 import collections
 
+import conversion
 import normalization
-import parsing # TODO Remove this import, as we should be normalizing everything before it gets here
 
 CIntegerLiteral = collections.namedtuple(
     'CIntegerLiteral',
@@ -157,7 +157,7 @@ BUILTINS = {
 }
 
 def transform_variable_expression(accumulators, expression):
-    assert isinstance(expression, normalization.NormalVariableExpression)
+    assert isinstance(expression, conversion.CPSVariableExpression)
     return CVariableExpression(variable=expression.variable)
 
 def transform_string_literal_expression(accumulators, expression):
@@ -236,14 +236,14 @@ def transform_list_append_statement(accumulators, expression):
 
 def transform_expression(accumulators, expression):
     return {
-        normalization.NormalFunctionCallExpression: transform_function_call_expression,
-        normalization.NormalIntegerLiteralExpression: transform_integer_literal_expression,
-        normalization.NormalListConstructExpression: transform_list_construct_expression,
+        conversion.CPSFunctionCallExpression: transform_function_call_expression,
+        conversion.CPSIntegerLiteralExpression: transform_integer_literal_expression,
+        conversion.CPSListConstructExpression: transform_list_construct_expression,
         normalization.NormalListGetExpression: transform_list_get_expression,
-        normalization.NormalStructureLiteralExpression: transform_structure_literal_expression,
-        normalization.NormalStringLiteralExpression: transform_string_literal_expression,
-        normalization.NormalSymbolExpression: transform_symbol_expression,
-        normalization.NormalVariableExpression: transform_variable_expression,
+        conversion.CPSStructureLiteralExpression: transform_structure_literal_expression,
+        conversion.CPSStringLiteralExpression: transform_string_literal_expression,
+        conversion.CPSSymbolExpression: transform_symbol_expression,
+        conversion.CPSVariableExpression: transform_variable_expression,
     }[type(expression)](accumulators, expression)
 
 def transform_symbol_assignment_statement(accumulators, assignment_statement):
@@ -338,16 +338,16 @@ def transform_push_statement(accumulators, statement):
 
 def transform_statement(accumulators, statement):
     return {
-        normalization.NormalArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
-        normalization.NormalAssignmentStatement: transform_symbol_assignment_statement,
-        normalization.NormalExpressionStatement: transform_expression_statement,
-        normalization.NormalFunctionDefinitionStatement: transform_function_definition_statement,
-        normalization.NormalIfElseStatement: transform_if_else_statement,
-        normalization.NormalListAppendStatement: transform_list_append_statement,
-        normalization.NormalPushStatement: transform_push_statement,
-        normalization.NormalSymbolArrayVariableInitializationStatement: transform_symbol_array_variable_initialization_statement,
-        normalization.NormalVariableInitializationStatement: transform_variable_initialization_statement,
-        normalization.NormalVariableReassignmentStatement: transform_variable_reassignment_statement,
+        conversion.CPSArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
+        conversion.CPSAssignmentStatement: transform_symbol_assignment_statement,
+        conversion.CPSExpressionStatement: transform_expression_statement,
+        conversion.CPSFunctionDefinitionStatement: transform_function_definition_statement,
+        conversion.CPSIfElseStatement: transform_if_else_statement,
+        conversion.CPSListAppendStatement: transform_list_append_statement,
+        conversion.CPSPushStatement: transform_push_statement,
+        conversion.CPSSymbolArrayVariableInitializationStatement: transform_symbol_array_variable_initialization_statement,
+        conversion.CPSVariableInitializationStatement: transform_variable_initialization_statement,
+        conversion.CPSVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)
 
 
