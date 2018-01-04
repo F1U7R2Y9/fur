@@ -147,14 +147,6 @@ NormalListAppendStatement = collections.namedtuple(
     ],
 )
 
-NormalListGetExpression = collections.namedtuple(
-    'NormalListGetExpression',
-    [
-        'list_expression',
-        'index_expression',
-    ],
-)
-
 def normalize_list_literal_expression(counter, expression):
     list_variable = '${}'.format(counter)
     counter += 1
@@ -188,25 +180,6 @@ def normalize_list_literal_expression(counter, expression):
         counter,
         tuple(prestatements),
         list_expression,
-    )
-
-def normalize_list_item_expression(counter, expression):
-    counter, list_prestatements, list_expression = normalize_expression(counter, expression.list_expression)
-    counter, index_prestatements, index_expression = normalize_expression(counter, expression.index_expression)
-
-    result_variable = '${}'.format(counter)
-    result_prestatement = NormalVariableInitializationStatement(
-        variable=result_variable,
-        expression=NormalListGetExpression(
-            list_expression=list_expression,
-            index_expression=index_expression,
-        ),
-    )
-
-    return (
-        counter + 1,
-        list_prestatements + index_prestatements + (result_prestatement,),
-        NormalVariableExpression(variable=result_variable),
     )
 
 def normalize_string_literal_expression(counter, expression):

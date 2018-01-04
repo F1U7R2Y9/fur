@@ -1,7 +1,6 @@
 import collections
 
 import conversion
-import normalization
 
 CIntegerLiteral = collections.namedtuple(
     'CIntegerLiteral',
@@ -204,14 +203,6 @@ CListAppendStatement = collections.namedtuple(
     ],
 )
 
-CListGetExpression = collections.namedtuple(
-    'CListGetExpression',
-    [
-        'list_expression',
-        'index_expression',
-    ],
-)
-
 def transform_structure_literal_expression(accumulators, expression):
     return CStructureLiteralExpression(
         field_count=expression.field_count,
@@ -221,12 +212,6 @@ def transform_structure_literal_expression(accumulators, expression):
 
 def transform_list_construct_expression(accumulators, expression):
     return CListConstructExpression(allocate=expression.allocate)
-
-def transform_list_get_expression(accumulators, expression):
-    return CListGetExpression(
-        list_expression=transform_expression(accumulators, expression.list_expression),
-        index_expression=transform_expression(accumulators, expression.index_expression),
-    )
 
 def transform_list_append_statement(accumulators, expression):
     return CListAppendStatement(
@@ -239,7 +224,6 @@ def transform_expression(accumulators, expression):
         conversion.CPSFunctionCallExpression: transform_function_call_expression,
         conversion.CPSIntegerLiteralExpression: transform_integer_literal_expression,
         conversion.CPSListConstructExpression: transform_list_construct_expression,
-        normalization.NormalListGetExpression: transform_list_get_expression,
         conversion.CPSStructureLiteralExpression: transform_structure_literal_expression,
         conversion.CPSStringLiteralExpression: transform_string_literal_expression,
         conversion.CPSSymbolExpression: transform_symbol_expression,

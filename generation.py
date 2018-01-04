@@ -36,18 +36,11 @@ def generate_structure_literal_expression(expression):
 def generate_list_construct_expression(expression):
     return 'List_construct({})'.format(expression.allocate)
 
-def generate_list_get_expression(expression):
-    return 'List_get(&{}, {})'.format(
-        generate_expression(expression.list_expression),
-        generate_expression(expression.index_expression),
-    )
-
 def generate_expression(expression):
     return {
         transformation.CFunctionCallExpression: generate_function_call,
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CListConstructExpression: generate_list_construct_expression,
-        transformation.CListGetExpression: generate_list_get_expression,
         transformation.CStringLiteral: generate_string_literal,
         transformation.CStructureLiteralExpression: generate_structure_literal_expression,
         transformation.CSymbolExpression: generate_symbol_expression,
