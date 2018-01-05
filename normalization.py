@@ -17,6 +17,14 @@ NormalIntegerLiteralExpression = collections.namedtuple(
     ],
 )
 
+NormalLambdaExpression = collections.namedtuple(
+    'NormalLambdaExpression',
+    (
+        'argument_name_list',
+        'statement_list',
+    ),
+)
+
 NormalStringLiteralExpression = collections.namedtuple(
     'NormalStringLiteralExpression',
     [
@@ -127,6 +135,29 @@ def normalize_integer_literal_expression(counter, expression):
             NormalVariableInitializationStatement(
                 variable=variable,
                 expression=NormalIntegerLiteralExpression(integer=expression.integer),
+            ),
+        ),
+        NormalVariableExpression(variable=variable),
+    )
+
+def normalize_lambda_expression(counter, expression):
+    variable = '${}'.format(counter)
+
+    _, statement_list = normalize_statement_list(
+        0,
+        expression.statement_list,
+        assign_result_to='result',
+    )
+
+    return (
+        counter + 1,
+        (
+            NormalVariableInitializationStatement(
+                variable=variable,
+                expression=NormalLambdaExpression(
+                    argument_name_list=expression.argument_name_list,
+                    statement_list=statement_list,
+                ),
             ),
         ),
         NormalVariableExpression(variable=variable),
@@ -380,6 +411,7 @@ def normalize_expression(counter, expression):
         desugaring.DesugaredFunctionCallExpression: normalize_function_call_expression,
         desugaring.DesugaredIfExpression: normalize_if_expression,
         desugaring.DesugaredIntegerLiteralExpression: normalize_integer_literal_expression,
+        desugaring.DesugaredLambdaExpression: normalize_lambda_expression,
         desugaring.DesugaredListLiteralExpression: normalize_list_literal_expression,
         desugaring.DesugaredStringLiteralExpression: normalize_string_literal_expression,
         desugaring.DesugaredStructureLiteralExpression: normalize_structure_literal_expression,

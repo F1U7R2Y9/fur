@@ -1,0 +1,8 @@
+def incrementer(n) do
+  lambda(m) do
+    m + n
+  end
+end
+
+print(incrementer(1)(42), '\n')
+print(incrementer(2)(42), '\n')

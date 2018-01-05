@@ -190,17 +190,24 @@ def transform_integer_literal_expression(accumulators, expression):
 
 CListConstructExpression = collections.namedtuple(
     'CListConstructExpression',
-    [
+    (
         'allocate',
-    ],
+    ),
+)
+
+CLambdaExpression = collections.namedtuple(
+    'CLambdaExpression',
+    (
+        'name',
+    ),
 )
 
 CListAppendStatement = collections.namedtuple(
     'CListAppendStatement',
-    [
+    (
         'list_expression',
         'item_expression',
-    ],
+    ),
 )
 
 def transform_structure_literal_expression(accumulators, expression):
@@ -209,6 +216,24 @@ def transform_structure_literal_expression(accumulators, expression):
         symbol_list_variable=expression.symbol_list_variable,
         value_list_variable=expression.value_list_variable,
     )
+
+def transform_lambda_expression(accumulators, expression):
+    # TODO This function feels hacky
+    if len(accumulators.lambda_number_list) == 0:
+        accumulators.lambda_number_list.append(0)
+    else:
+        accumulators.lambda_number_list.append(accumulators.lambda_number_list[-1] + 1)
+
+    name = '__lambda_{}'.format(accumulators.lambda_number_list[-1])
+
+    accumulators.function_definition_list.append(CFunctionDefinition(
+        name=name,
+        argument_name_list=expression.argument_name_list,
+        statement_list=tuple(transform_statement(accumulators, s) for s in expression.statement_list),
+    ))
+
+    return CLambdaExpression(name=name)
+
 
 def transform_list_construct_expression(accumulators, expression):
     return CListConstructExpression(allocate=expression.allocate)
@@ -223,6 +248,7 @@ def transform_expression(accumulators, expression):
     return {
         conversion.CPSFunctionCallExpression: transform_function_call_expression,
         conversion.CPSIntegerLiteralExpression: transform_integer_literal_expression,
+        conversion.CPSLambdaExpression: transform_lambda_expression,
         conversion.CPSListConstructExpression: transform_list_construct_expression,
         conversion.CPSStructureLiteralExpression: transform_structure_literal_expression,
         conversion.CPSStringLiteralExpression: transform_string_literal_expression,
@@ -340,6 +366,7 @@ Accumulators = collections.namedtuple(
     [
         'builtin_set',
         'function_definition_list',
+        'lambda_number_list',
         'operator_set',
         'symbol_list',
         'string_literal_list',
@@ -350,6 +377,7 @@ def transform(program):
     accumulators = Accumulators(
         builtin_set=set(),
         function_definition_list=[],
+        lambda_number_list=[],
         operator_set=set(),
         symbol_list=[],
         string_literal_list=[],

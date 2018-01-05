@@ -43,6 +43,14 @@ FurIntegerLiteralExpression = collections.namedtuple(
     ],
 )
 
+FurLambdaExpression = collections.namedtuple(
+    'FurLambdaExpression',
+    (
+        'argument_name_list',
+        'statement_list',
+    ),
+)
+
 FurStringLiteralExpression = collections.namedtuple(
     'FurStringLiteralExpression',
     [
@@ -213,6 +221,56 @@ def _structure_literal_parser(index, tokens):
         ),
     )
 
+def _lambda_expression_parser(index, tokens):
+    failure = (False, index, None)
+
+    if tokens[index].type == 'keyword' and tokens[index].match == 'lambda':
+        index += 1
+    else:
+        return failure
+
+    if tokens[index].type == 'open_parenthese':
+        index += 1
+    else:
+        raise Exception('Expected "(", found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].metadata.line,
+        ))
+
+    success, index, argument_name_list = _comma_separated_list_parser(_symbol_expression_parser)(
+        index,
+        tokens,
+    )
+
+    if tokens[index].type == 'close_parenthese':
+        index += 1
+    else:
+        raise Exception('Expected ")", found "{}" on line {}'.format(
+            tokens[index].match,
+            tokens[index].line,
+        ))
+
+    if tokens[index].match == 'do':
+        index += 1
+    else:
+        return failure
+
+    success, index, statement_list = _zero_or_more_parser(tuple, _statement_parser)(index, tokens)
+
+    _, index, _ = consume_newlines(index, tokens)
+
+    if tokens[index].type == 'keyword' and tokens[index].match == 'end':
+        index += 1
+    else:
+        return failure
+
+    return True, index, FurLambdaExpression(
+        argument_name_list=tuple(an.symbol for an in argument_name_list),
+        statement_list=statement_list,
+    )
+
+
+
 def _list_literal_expression_parser(index, tokens):
     failure = (False, index, None)
 
@@ -233,6 +291,7 @@ def _literal_level_expression_parser(index, tokens):
         _integer_literal_expression_parser,
         _string_literal_expression_parser,
         _list_literal_expression_parser,
+        _lambda_expression_parser,
         _symbol_expression_parser,
         _structure_literal_parser,
     )(index, tokens)
@@ -642,7 +701,7 @@ def _function_definition_statement_parser(index, tokens):
 
     return True, index, FurFunctionDefinitionStatement(
         name=name,
-    argument_name_list=tuple(an.symbol for an in argument_name_list),
+        argument_name_list=tuple(an.symbol for an in argument_name_list),
         statement_list=statement_list,
     )
 

@@ -27,6 +27,14 @@ DesugaredIntegerLiteralExpression = collections.namedtuple(
     ),
 )
 
+DesugaredLambdaExpression = collections.namedtuple(
+    'DesugaredLambdaExpression',
+    (
+        'argument_name_list',
+        'statement_list',
+    ),
+)
+
 DesugaredListLiteralExpression = collections.namedtuple(
     'DesugaredListLiteralExpression',
     (
@@ -187,6 +195,12 @@ def desugar_integer_literal_expression(expression):
         integer=expression.integer,
     )
 
+def desugar_lambda_expression(expression):
+    return DesugaredLambdaExpression(
+        argument_name_list=expression.argument_name_list,
+        statement_list=tuple(desugar_statement(s) for s in expression.statement_list),
+    )
+
 def desugar_list_item_expression(expression):
     return DesugaredFunctionCallExpression(
         metadata=expression.metadata,
@@ -244,6 +258,7 @@ def desugar_expression(expression):
         parsing.FurIfExpression: desugar_if_expression,
         parsing.FurInfixExpression: desugar_infix_expression,
         parsing.FurIntegerLiteralExpression: desugar_integer_literal_expression,
+        parsing.FurLambdaExpression: desugar_lambda_expression,
         parsing.FurListItemExpression: desugar_list_item_expression,
         parsing.FurListLiteralExpression: desugar_list_literal_expression,
         parsing.FurNegationExpression: desugar_negation_expression,

@@ -33,6 +33,11 @@ def generate_structure_literal_expression(expression):
         expression.value_list_variable,
     )
 
+def generate_lambda_expression(expression):
+    return '(Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }}'.format(
+        expression.name,
+    )
+
 def generate_list_construct_expression(expression):
     return 'List_construct({})'.format(expression.allocate)
 
@@ -40,6 +45,7 @@ def generate_expression(expression):
     return {
         transformation.CFunctionCallExpression: generate_function_call,
         transformation.CIntegerLiteral: generate_integer_literal,
+        transformation.CLambdaExpression: generate_lambda_expression,
         transformation.CListConstructExpression: generate_list_construct_expression,
         transformation.CStringLiteral: generate_string_literal,
         transformation.CStructureLiteralExpression: generate_structure_literal_expression,
@@ -134,7 +140,10 @@ def generate_if_else_statement(statement):
     return generated_if_clause + generated_if_statement_list + generated_else_statement_list
 
 def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(statement.name, statement.name)
+    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(
+        statement.name,
+        statement.name,
+    )
 
 def generate_list_append_statement(statement):
     return 'List_append(&{}, {});'.format(

@@ -18,6 +18,14 @@ CPSIntegerLiteralExpression = collections.namedtuple(
     ),
 )
 
+CPSLambdaExpression = collections.namedtuple(
+    'CPSLambdaExpression',
+    (
+        'argument_name_list',
+        'statement_list',
+    ),
+)
+
 CPSListConstructExpression = collections.namedtuple(
     'CPSListConstructExpression',
     (
@@ -152,6 +160,12 @@ def convert_function_call_expression(expression):
 def convert_integer_literal_expression(expression):
     return CPSIntegerLiteralExpression(integer=expression.integer)
 
+def convert_lambda_expression(expression):
+    return CPSLambdaExpression(
+        argument_name_list=expression.argument_name_list,
+        statement_list=tuple(convert_statement(s) for s in expression.statement_list),
+    )
+
 def convert_list_construct_expression(expression):
     return CPSListConstructExpression(allocate=expression.allocate)
 
@@ -175,6 +189,7 @@ def convert_expression(expression):
     return {
         normalization.NormalFunctionCallExpression: convert_function_call_expression,
         normalization.NormalIntegerLiteralExpression: convert_integer_literal_expression,
+        normalization.NormalLambdaExpression: convert_lambda_expression,
         normalization.NormalListConstructExpression: convert_list_construct_expression,
         normalization.NormalStringLiteralExpression: convert_string_literal_expression,
         normalization.NormalStructureLiteralExpression: convert_structure_literal_expression,
