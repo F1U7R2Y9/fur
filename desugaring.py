@@ -27,13 +27,21 @@ DesugaredIntegerLiteralExpression = collections.namedtuple(
     ),
 )
 
-DesugaredLambdaExpression = collections.namedtuple(
+_DesugaredLambdaExpression = collections.namedtuple(
     'DesugaredLambdaExpression',
     (
+        'name',
         'argument_name_list',
         'statement_list',
     ),
 )
+
+class DesugaredLambdaExpression(_DesugaredLambdaExpression):
+    def __new__(cls, *args, **kwargs):
+        if 'name' not in kwargs:
+            kwargs['name'] = None
+
+        return super(DesugaredLambdaExpression, cls).__new__(cls, *args, **kwargs)
 
 DesugaredListLiteralExpression = collections.namedtuple(
     'DesugaredListLiteralExpression',
@@ -84,15 +92,6 @@ DesugaredExpressionStatement = collections.namedtuple(
     'DesugaredExpressionStatement',
     (
         'expression',
-    ),
-)
-
-DesugaredFunctionDefinitionStatement = collections.namedtuple(
-    'DesugaredFunctionDefinitionStatement',
-    (
-        'name',
-        'argument_name_list',
-        'statement_list',
     ),
 )
 
@@ -279,10 +278,13 @@ def desugar_expression_statement(statement):
     )
 
 def desugar_function_definition_statement(statement):
-    return DesugaredFunctionDefinitionStatement(
-        name=statement.name,
-        argument_name_list=statement.argument_name_list,
-        statement_list=tuple(desugar_statement(s) for s in statement.statement_list),
+    return DesugaredAssignmentStatement(
+        target=statement.name,
+        expression=DesugaredLambdaExpression(
+            name=statement.name,
+            argument_name_list=statement.argument_name_list,
+            statement_list=tuple(desugar_statement(s) for s in statement.statement_list),
+        ),
     )
 
 def desugar_statement(statement):

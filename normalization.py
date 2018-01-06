@@ -20,6 +20,7 @@ NormalIntegerLiteralExpression = collections.namedtuple(
 NormalLambdaExpression = collections.namedtuple(
     'NormalLambdaExpression',
     (
+        'name',
         'argument_name_list',
         'statement_list',
     ),
@@ -111,15 +112,6 @@ NormalIfElseStatement = collections.namedtuple(
     ],
 )
 
-NormalFunctionDefinitionStatement = collections.namedtuple(
-    'NormalFunctionDefinitionStatement',
-    [
-        'name',
-        'argument_name_list',
-        'statement_list',
-    ],
-)
-
 NormalProgram = collections.namedtuple(
     'NormalProgram',
     [
@@ -155,6 +147,7 @@ def normalize_lambda_expression(counter, expression):
             NormalVariableInitializationStatement(
                 variable=variable,
                 expression=NormalLambdaExpression(
+                    name=expression.name,
                     argument_name_list=expression.argument_name_list,
                     statement_list=statement_list,
                 ),
@@ -431,22 +424,6 @@ def normalize_expression_statement(counter, statement):
         NormalExpressionStatement(expression=normalized),
     )
 
-def normalize_function_definition_statement(counter, statement):
-    _, statement_list = normalize_statement_list(
-        0,
-        statement.statement_list,
-        assign_result_to='result',
-    )
-    return (
-        counter,
-        (),
-        NormalFunctionDefinitionStatement(
-            name=statement.name,
-            argument_name_list=statement.argument_name_list,
-            statement_list=statement_list,
-        ),
-    )
-
 def normalize_assignment_statement(counter, statement):
     counter, prestatements, normalized_expression = normalize_expression(counter, statement.expression)
     return (
@@ -462,7 +439,6 @@ def normalize_statement(counter, statement):
     return {
         desugaring.DesugaredAssignmentStatement: normalize_assignment_statement,
         desugaring.DesugaredExpressionStatement: normalize_expression_statement,
-        desugaring.DesugaredFunctionDefinitionStatement: normalize_function_definition_statement,
     }[type(statement)](counter, statement)
 
 @util.force_generator(tuple)

@@ -116,13 +116,6 @@ CIfElseStatement = collections.namedtuple(
     ],
 )
 
-CFunctionDeclaration = collections.namedtuple(
-    'CFunctionDeclaration',
-    [
-        'name',
-    ],
-)
-
 # TODO If a function definition doesn't end with an expression, we have issues currently because we try to return statement.
 # TODO Closures currently wrap entire defining environment, even symbols that are not used, which makes garbage collection ineffective.
 CFunctionDefinition = collections.namedtuple(
@@ -224,7 +217,10 @@ def transform_lambda_expression(accumulators, expression):
     else:
         accumulators.lambda_number_list.append(accumulators.lambda_number_list[-1] + 1)
 
-    name = '__lambda_{}'.format(accumulators.lambda_number_list[-1])
+    if expression.name is None:
+        name = '__lambda_{}'.format(accumulators.lambda_number_list[-1])
+    else:
+        name = expression.name
 
     accumulators.function_definition_list.append(CFunctionDefinition(
         name=name,
@@ -329,20 +325,6 @@ def transform_variable_reassignment_statement(accumulators, statement):
         expression=transform_expression(accumulators, statement.expression),
     )
 
-def transform_function_definition_statement(accumulators, statement):
-    # TODO Allow defining the same function in different contexts
-    if any(fd.name == statement.name for fd in accumulators.function_definition_list):
-        raise Exception('A function with name "{}" already exists'.format(statement.name))
-
-    # TODO Add argument names to the symbol table
-    accumulators.function_definition_list.append(CFunctionDefinition(
-        name=statement.name,
-        argument_name_list=statement.argument_name_list,
-        statement_list=tuple(transform_statement(accumulators, s) for s in statement.statement_list)
-    ))
-
-    return CFunctionDeclaration(name=statement.name)
-
 def transform_push_statement(accumulators, statement):
     return CPushStatement(expression=transform_expression(accumulators, statement.expression))
 
@@ -351,7 +333,6 @@ def transform_statement(accumulators, statement):
         conversion.CPSArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
         conversion.CPSAssignmentStatement: transform_symbol_assignment_statement,
         conversion.CPSExpressionStatement: transform_expression_statement,
-        conversion.CPSFunctionDefinitionStatement: transform_function_definition_statement,
         conversion.CPSIfElseStatement: transform_if_else_statement,
         conversion.CPSListAppendStatement: transform_list_append_statement,
         conversion.CPSPushStatement: transform_push_statement,

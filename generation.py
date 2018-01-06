@@ -139,12 +139,6 @@ def generate_if_else_statement(statement):
 
     return generated_if_clause + generated_if_statement_list + generated_else_statement_list
 
-def generate_function_declaration(statement):
-    return 'Environment_set(environment, "{}", (Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }});'.format(
-        statement.name,
-        statement.name,
-    )
-
 def generate_list_append_statement(statement):
     return 'List_append(&{}, {});'.format(
         generate_expression(statement.list_expression),
@@ -158,7 +152,6 @@ def generate_statement(statement):
     return {
         transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
         transformation.CExpressionStatement: generate_expression_statement,
-        transformation.CFunctionDeclaration: generate_function_declaration,
         transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CListAppendStatement: generate_list_append_statement,
         transformation.CPushStatement: generate_push_statement,

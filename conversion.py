@@ -21,6 +21,7 @@ CPSIntegerLiteralExpression = collections.namedtuple(
 CPSLambdaExpression = collections.namedtuple(
     'CPSLambdaExpression',
     (
+        'name',
         'argument_name_list',
         'statement_list',
     ),
@@ -84,15 +85,6 @@ CPSExpressionStatement = collections.namedtuple(
     (
         'expression',
     ),
-)
-
-CPSFunctionDefinitionStatement = collections.namedtuple(
-    'CPSFunctionDefinitionStatement',
-    (
-        'name',
-        'argument_name_list',
-        'statement_list',
-    )
 )
 
 CPSIfElseStatement = collections.namedtuple(
@@ -162,6 +154,7 @@ def convert_integer_literal_expression(expression):
 
 def convert_lambda_expression(expression):
     return CPSLambdaExpression(
+        name=expression.name,
         argument_name_list=expression.argument_name_list,
         statement_list=tuple(convert_statement(s) for s in expression.statement_list),
     )
@@ -214,13 +207,6 @@ def convert_expression_statement(statement):
         expression=convert_expression(statement.expression),
     )
 
-def convert_function_definition_statement(statement):
-    return CPSFunctionDefinitionStatement(
-        name=statement.name,
-        argument_name_list=statement.argument_name_list,
-        statement_list=tuple(convert_statement(s) for s in statement.statement_list),
-    )
-
 def convert_if_else_statement(statement):
     return CPSIfElseStatement(
         condition_expression=convert_expression(statement.condition_expression),
@@ -263,7 +249,6 @@ def convert_statement(statement):
         normalization.NormalArrayVariableInitializationStatement: convert_array_variable_initialization_statement,
         normalization.NormalAssignmentStatement: convert_assignment_statement,
         normalization.NormalExpressionStatement: convert_expression_statement,
-        normalization.NormalFunctionDefinitionStatement: convert_function_definition_statement,
         normalization.NormalIfElseStatement: convert_if_else_statement,
         normalization.NormalListAppendStatement: convert_list_append_statement,
         normalization.NormalPushStatement: convert_push_statement,
