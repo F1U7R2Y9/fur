@@ -122,6 +122,7 @@ CFunctionDefinition = collections.namedtuple(
     'CFunctionDefinition',
     [
         'name',
+        'index',
         'argument_name_list',
         'statement_list',
     ],
@@ -192,6 +193,7 @@ CLambdaExpression = collections.namedtuple(
     'CLambdaExpression',
     (
         'name',
+        'index',
     ),
 )
 
@@ -211,24 +213,25 @@ def transform_structure_literal_expression(accumulators, expression):
     )
 
 def transform_lambda_expression(accumulators, expression):
-    # TODO This function feels hacky
-    if len(accumulators.lambda_number_list) == 0:
-        accumulators.lambda_number_list.append(0)
-    else:
-        accumulators.lambda_number_list.append(accumulators.lambda_number_list[-1] + 1)
-
     if expression.name is None:
-        name = '__lambda_{}'.format(accumulators.lambda_number_list[-1])
+        name = '__lambda'
     else:
         name = expression.name
 
+    index = accumulators.function_name_iterators.get(name, 0)
+    accumulators.function_name_iterators[name] = index + 1
+
     accumulators.function_definition_list.append(CFunctionDefinition(
         name=name,
+        index=index,
         argument_name_list=expression.argument_name_list,
         statement_list=tuple(transform_statement(accumulators, s) for s in expression.statement_list),
     ))
 
-    return CLambdaExpression(name=name)
+    return CLambdaExpression(
+        name=name,
+        index=index,
+    )
 
 
 def transform_list_construct_expression(accumulators, expression):
@@ -347,7 +350,7 @@ Accumulators = collections.namedtuple(
     [
         'builtin_set',
         'function_definition_list',
-        'lambda_number_list',
+        'function_name_iterators',
         'operator_set',
         'symbol_list',
         'string_literal_list',
@@ -358,7 +361,7 @@ def transform(program):
     accumulators = Accumulators(
         builtin_set=set(),
         function_definition_list=[],
-        lambda_number_list=[],
+        function_name_iterators={},
         operator_set=set(),
         symbol_list=[],
         string_literal_list=[],

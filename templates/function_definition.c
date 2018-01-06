@@ -1,5 +1,5 @@
 
-Object user${{name}}$implementation(
+Object user${{name}}${{index}}$implementation(
     EnvironmentPool* environmentPool,
     Environment* environment,
     size_t argc,

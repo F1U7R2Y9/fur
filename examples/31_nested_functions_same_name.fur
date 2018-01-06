@@ -1,0 +1,18 @@
+def get_incrementer(n) do
+  def foo(m) do
+    m + n
+  end
+
+  foo
+end
+
+def get_multiplier(n) do
+  def foo(m) do
+    m * n
+  end
+
+  foo
+end
+
+print(get_incrementer(2)(3), '\n')
+print(get_multiplier(2)(3), '\n')

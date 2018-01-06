@@ -34,8 +34,9 @@ def generate_structure_literal_expression(expression):
     )
 
 def generate_lambda_expression(expression):
-    return '(Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}$implementation }} }}'.format(
+    return '(Object){{ CLOSURE, (Instance)(Closure){{ environment, user${}${}$implementation }} }}'.format(
         expression.name,
+        expression.index,
     )
 
 def generate_list_construct_expression(expression):
@@ -165,6 +166,7 @@ def generate_function_definition(definition):
     template = ENV.get_template('function_definition.c')
     return template.render(
         name=definition.name,
+        index=definition.index,
         argument_name_list=definition.argument_name_list,
         statement_list=list(generate_statement(s) for s in definition.statement_list),
     )
