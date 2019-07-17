@@ -114,7 +114,7 @@ def add_example_memory_leak_test(filename):
             except OSError:
                 pass
 
-    setattr(MemoryLeakTest, 'test_' + filename, test)
+    setattr(MemoryLeakTests, 'test_' + filename, test)
 
 filenames = (
     entry.name
