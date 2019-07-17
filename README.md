@@ -11,7 +11,8 @@ furry animals, so Fur is named in their honor.
 
 ## Integration tests
 
-To run the unit tests, run `python integration_tests.py`.
+To run the unit tests, run `python integration_tests.py`. You can test just the output of the examples or just the memory usage of the tests by running
+`python integration_tests.py OutputTests` or `python integration_tests.py MemoryLeakTests` respectively.
 
 # Running
 

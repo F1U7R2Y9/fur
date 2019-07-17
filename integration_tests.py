@@ -61,7 +61,7 @@ def add_example_output_test(filename):
 
     setattr(OutputTests, 'test_' + filename, test)
 
-class MemoryLeakTest(unittest.TestCase):
+class MemoryLeakTests(unittest.TestCase):
     pass
 
 def add_example_memory_leak_test(filename):
