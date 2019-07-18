@@ -194,15 +194,7 @@ def generate(converted):
     return CIRProgram(
         entry_list=(
             CIRLabel(label='__main__'),
-        ) + tuple(
-            referenced_entry
-            for referenced_entry_list in referenced_entry_list_list
-            for referenced_entry in referenced_entry_list
-        ) + tuple(
-            instruction
-            for instruction_list in instruction_list_list
-            for instruction in instruction_list
-        ),
+        ) + flatten(referenced_entry_list_list) + flatten(instruction_list_list),
     )
 
 def output(program):
