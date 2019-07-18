@@ -36,57 +36,110 @@ def generate_string_literal(string):
 def generate_symbol_literal(symbol):
     return 'sym({})'.format(symbol)
 
-def generate_function_call_expression(expression):
-    return generate_expression(expression.function_expression) + (
+def generate_function_call_expression(counters, expression):
+    referenced_entry_list, instruction_list = generate_expression(
+        counters,
+        expression.function_expression,
+    )
+
+    instruction_list += (
         CIRInstruction(
             instruction='call',
             argument=expression.argument_count,
         ),
     )
 
-def generate_integer_literal_expression(expression):
-    return (CIRInstruction(
+    return referenced_entry_list, instruction_list
+
+def generate_integer_literal_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
         instruction='push_value',
         argument=generate_integer_literal(expression.integer),
     ),)
 
-def generate_string_literal_expression(expression):
-    return (CIRInstruction(
+    return referenced_entry_list, instruction_list
+
+def generate_lambda_expression(counters, expression):
+    if expression.name is None or 'lambda' in expression.name.lower():
+        import ipdb; ipdb.set_trace()
+
+    name_counter = counters.get(expression.name, 0)
+    counters[expression.name] = name_counter + 1
+    label = '{}${}'.format(expression.name, name_counter)
+
+    for argument_name in expression.argument_name_list:
+        import ipdb; ipdb.set_trace()
+
+    referenced_entry_list_list = []
+    instruction_list_list = []
+
+    for statement in expression.statement_list:
+        referenced_entry_list, instruction_list = generate_statement(counters, statement)
+        referenced_entry_list_list.append(referenced_entry_list)
+        instruction_list_list.append(instruction_list)
+
+    referenced_entry_list_list.append(
+        (CIRLabel(label=label),) + flatten(instruction_list_list),
+    )
+
+    instruction_list = (
+        CIRInstruction(instruction='close', argument=label),
+    )
+
+    return flatten(referenced_entry_list_list), instruction_list
+
+def generate_string_literal_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
         instruction='push_value',
         argument=generate_string_literal(expression.string),
     ),)
 
-def generate_symbol_expression(expression):
-    return (CIRInstruction(
+    return referenced_entry_list, instruction_list
+
+def generate_symbol_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
         instruction='push',
         argument=generate_symbol_literal(expression.symbol),
     ),)
 
-def generate_variable_expression(expression):
-    return (CIRInstruction(
+    return referenced_entry_list, instruction_list
+
+def generate_variable_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
         instruction='push',
         argument=generate_symbol_literal(expression.variable),
     ),)
 
-def generate_expression(expression):
+    return referenced_entry_list, instruction_list
+
+def generate_expression(counters, expression):
     return {
         conversion.CPSFunctionCallExpression: generate_function_call_expression,
         conversion.CPSIntegerLiteralExpression: generate_integer_literal_expression,
+        conversion.CPSLambdaExpression: generate_lambda_expression,
         conversion.CPSStringLiteralExpression: generate_string_literal_expression,
         conversion.CPSSymbolExpression: generate_symbol_expression,
         conversion.CPSVariableExpression: generate_variable_expression,
-    }[type(expression)](expression)
+    }[type(expression)](counters, expression)
 
 def generate_expression_statement(counters, statement):
-    return (
-        (),
-        generate_expression(statement.expression) + (
-            CIRInstruction(
-                instruction='drop',
-                argument=None,
-            ),
+    referenced_entry_list, instruction_list = generate_expression(
+        counters,
+        statement.expression,
+    )
+
+    instruction_list += (
+        CIRInstruction(
+            instruction='drop',
+            argument=None,
         ),
     )
+
+    return referenced_entry_list, instruction_list
 
 def generate_if_else_statement(counters, statement):
     if_counter = counters['if']
@@ -111,9 +164,9 @@ def generate_if_else_statement(counters, statement):
     else_label = '__else${}__'.format(if_counter)
     endif_label = '__endif${}__'.format(if_counter)
 
-    return (
+    instruction_list = (
         referenced_entry_list_list,
-        generate_expression(statement.condition_expression) + (
+        generate_expression(counters, statement.condition_expression) + (
             CIRInstruction(
                 instruction='jump_if_false',
                 argument=else_label,
@@ -130,44 +183,55 @@ def generate_if_else_statement(counters, statement):
         ),
     )
 
+    return flatten(referenced_entry_list_list), instruction_list
+
 def generate_assignment_statement(counters, statement):
-    return (
-        (),
-        generate_expression(statement.expression) + (
-            CIRInstruction(
-                instruction='pop',
-                argument=generate_symbol_literal(statement.target),
-            ),
+    referenced_entry_list, instruction_list = generate_expression(
+        counters,
+        statement.expression,
+    )
+
+    instruction_list += (
+        CIRInstruction(
+            instruction='pop',
+            argument=generate_symbol_literal(statement.target),
         ),
     )
+
+    return referenced_entry_list, instruction_list
 
 def generate_push_statement(counters, statement):
-    return (
-        (),
-        generate_expression(statement.expression),
-    )
+    return generate_expression(counters, statement.expression)
 
 def generate_variable_initialization_statement(counters, statement):
-    return (
-        (),
-        generate_expression(statement.expression) + (
-            CIRInstruction(
-                instruction='pop',
-                argument=generate_symbol_literal(statement.variable),
-            ),
+    referenced_entry_list, instruction_list = generate_expression(
+        counters,
+        statement.expression,
+    )
+
+    instruction_list += (
+        CIRInstruction(
+            instruction='pop',
+            argument=generate_symbol_literal(statement.variable),
         ),
     )
 
-def generate_variable_reassignment_statement(counter, statement):
-    return (
-        (),
-        generate_expression(statement.expression) + (
-            CIRInstruction(
-                instruction='pop',
-                argument=generate_symbol_literal(statement.variable),
-            ),
+    return referenced_entry_list, instruction_list
+
+def generate_variable_reassignment_statement(counters, statement):
+    referenced_entry_list, instruction_list = generate_expression(
+        counters,
+        statement.expression,
+    )
+
+    instruction_list += (
+        CIRInstruction(
+            instruction='pop',
+            argument=generate_symbol_literal(statement.variable),
         ),
     )
+
+    return referenced_entry_list, instruction_list
 
 def generate_statement(counters, statement):
     return {
