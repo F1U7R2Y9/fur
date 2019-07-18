@@ -2,6 +2,9 @@ import collections
 
 import conversion
 
+def flatten(xses):
+    return tuple(x for xs in xses for x in xs)
+
 CIRProgram = collections.namedtuple(
     'CIRProgram',
     (
@@ -9,11 +12,10 @@ CIRProgram = collections.namedtuple(
     ),
 )
 
-CIREntry = collections.namedtuple(
-    'CIREntry',
+CIRLabel = collections.namedtuple(
+    'CIRLabel',
     (
-        'name',
-        'instruction_list',
+        'label',
     ),
 )
 
@@ -75,7 +77,7 @@ def generate_expression(expression):
         conversion.CPSVariableExpression: generate_variable_expression,
     }[type(expression)](expression)
 
-def generate_expression_statement(statement):
+def generate_expression_statement(counters, statement):
     return (
         (),
         generate_expression(statement.expression) + (
@@ -86,10 +88,49 @@ def generate_expression_statement(statement):
         ),
     )
 
-def generate_if_else_statement(statement):
-    import ipdb; ipdb.set_trace()
+def generate_if_else_statement(counters, statement):
+    if_counter = counters['if']
+    counters['if'] += 1
 
-def generate_assignment_statement(statement):
+    referenced_entry_list_list = []
+
+    if_instruction_list_list = []
+    for if_statement in statement.if_statement_list:
+        referenced_entry_list, instruction_list = generate_statement(counters, if_statement)
+        referenced_entry_list_list.append(referenced_entry_list)
+        if_instruction_list_list.append(instruction_list)
+
+    else_instruction_list_list = []
+
+    for else_statement in statement.else_statement_list:
+        referenced_entry_list, instruction_list = generate_statement(counters, else_statement)
+        referenced_entry_list_list.append(referenced_entry_list)
+        else_instruction_list_list.append(instruction_list)
+
+    if_label = '__if${}__'.format(if_counter)
+    else_label = '__else${}__'.format(if_counter)
+    endif_label = '__endif${}__'.format(if_counter)
+
+    return (
+        referenced_entry_list_list,
+        generate_expression(statement.condition_expression) + (
+            CIRInstruction(
+                instruction='jump_if_false',
+                argument=else_label,
+            ),
+            CIRLabel(label=if_label),
+        ) + flatten(if_instruction_list_list) + (
+            CIRInstruction(
+                instruction='jump',
+                argument=endif_label,
+            ),
+            CIRLabel(label=else_label),
+        ) + flatten(else_instruction_list_list) + (
+            CIRLabel(label=endif_label),
+        ),
+    )
+
+def generate_assignment_statement(counters, statement):
     return (
         (),
         generate_expression(statement.expression) + (
@@ -100,13 +141,13 @@ def generate_assignment_statement(statement):
         ),
     )
 
-def generate_push_statement(statement):
+def generate_push_statement(counters, statement):
     return (
         (),
         generate_expression(statement.expression),
     )
 
-def generate_variable_initialization_statement(statement):
+def generate_variable_initialization_statement(counters, statement):
     return (
         (),
         generate_expression(statement.expression) + (
@@ -117,54 +158,61 @@ def generate_variable_initialization_statement(statement):
         ),
     )
 
-def generate_statement(statement):
+def generate_variable_reassignment_statement(counter, statement):
+    return (
+        (),
+        generate_expression(statement.expression) + (
+            CIRInstruction(
+                instruction='pop',
+                argument=generate_symbol_literal(statement.variable),
+            ),
+        ),
+    )
+
+def generate_statement(counters, statement):
     return {
         conversion.CPSAssignmentStatement: generate_assignment_statement,
         conversion.CPSExpressionStatement: generate_expression_statement,
         conversion.CPSIfElseStatement: generate_if_else_statement,
         conversion.CPSPushStatement: generate_push_statement,
         conversion.CPSVariableInitializationStatement: generate_variable_initialization_statement,
-    }[type(statement)](statement)
+        conversion.CPSVariableReassignmentStatement: generate_variable_reassignment_statement,
+    }[type(statement)](counters, statement)
 
 def generate(converted):
     referenced_entry_list_list = []
     instruction_list_list = []
+    counters = {
+        'if': 0,
+    }
 
     for statement in converted.statement_list:
-        referenced_entry_list, instruction_list = generate_statement(statement)
+        referenced_entry_list, instruction_list = generate_statement(counters, statement)
         referenced_entry_list_list.append(referenced_entry_list)
         instruction_list_list.append(instruction_list)
 
     return CIRProgram(
-        entry_list=tuple(
-            entry
+        entry_list=(
+            CIRLabel(label='__main__'),
+        ) + tuple(
+            referenced_entry
             for referenced_entry_list in referenced_entry_list_list
-            for entry in referenced_entry_list
-        ) + (CIREntry(
-            name='__main__',
-            instruction_list=tuple(
-                instruction
-                for instruction_list in instruction_list_list
-                for instruction in instruction_list
-            ),
-        ),),
+            for referenced_entry in referenced_entry_list
+        ) + tuple(
+            instruction
+            for instruction_list in instruction_list_list
+            for instruction in instruction_list
+        ),
     )
 
 def output(program):
-    entry_outputs = []
+    lines = []
 
     for entry in program.entry_list:
-        statement_outputs = []
+        if isinstance(entry, CIRInstruction):
+            lines.append('    {} {}'.format(entry.instruction, entry.argument))
 
-        for instruction in entry.instruction_list:
-            statement_outputs.append('    {} {}'.format(
-                instruction.instruction,
-                instruction.argument,
-            ))
+        if isinstance(entry, CIRLabel):
+            lines.append('\n{}:'.format(entry.label))
 
-        entry_outputs.append('{}:\n{}'.format(
-            entry.name,
-            '\n'.join(statement_outputs),
-        ))
-
-    return '\n\n'.join(entry_outputs)
+    return '\n'.join(lines).lstrip()
