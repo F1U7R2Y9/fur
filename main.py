@@ -5,6 +5,7 @@ import crossplatform_ir_generation
 import desugaring
 import generation
 import normalization
+import optimization
 import parsing
 import tokenization
 import transformation
@@ -32,5 +33,6 @@ with open(destination_path, 'w') as f:
 
 # This is the crossplatform IR generation path
 crossplatform_ir = crossplatform_ir_generation.generate(converted)
-outputted = crossplatform_ir_generation.output(crossplatform_ir)
+optimized = optimization.optimize(crossplatform_ir)
+outputted = crossplatform_ir_generation.output(optimized)
 print(outputted)
