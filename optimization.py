@@ -4,6 +4,7 @@ PUSHING_INSTRUCTIONS_WITHOUT_SIDE_EFFECTS = set(
     ('push',),
 )
 
+# TODO Some instructions may not touch the stack, so if these occur between a push and a drop we could still optimize
 def push_drop_optimization(ir):
     ir = tuple(ir)
 
@@ -20,7 +21,7 @@ def push_drop_optimization(ir):
             yield ir[i]
             i += 1
 
-# TODO This can be smarter
+# TODO We might be able to trace program flow to eliminate usages even if variables have the same name
 def unused_pop_optimization(ir):
     ir = tuple(ir)
 
