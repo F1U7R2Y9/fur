@@ -207,16 +207,10 @@ def normalize_list_literal_expression(counter, expression):
     )
 
 def normalize_string_literal_expression(counter, expression):
-    variable = '${}'.format(counter)
     return (
-        counter + 1,
-        (
-            NormalVariableInitializationStatement(
-                variable=variable,
-                expression=NormalStringLiteralExpression(string=expression.string),
-            ),
-        ),
-        NormalVariableExpression(variable=variable),
+        counter,
+        (),
+        NormalStringLiteralExpression(string=expression.string),
     )
 
 NormalStructureLiteralExpression = collections.namedtuple(
