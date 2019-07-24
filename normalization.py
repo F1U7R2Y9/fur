@@ -120,16 +120,10 @@ NormalProgram = collections.namedtuple(
 )
 
 def normalize_integer_literal_expression(counter, expression):
-    variable = '${}'.format(counter)
     return (
-        counter + 1,
-        (
-            NormalVariableInitializationStatement(
-                variable=variable,
-                expression=NormalIntegerLiteralExpression(integer=expression.integer),
-            ),
-        ),
-        NormalVariableExpression(variable=variable),
+        counter,
+        (),
+        NormalIntegerLiteralExpression(integer=expression.integer),
     )
 
 def normalize_lambda_expression(counter, expression):
