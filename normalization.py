@@ -301,21 +301,11 @@ def normalize_function_call_expression(counter, expression):
         for s in argument_prestatements:
             prestatements.append(s)
 
-        variable = '${}'.format(counter)
-        prestatements.append(
-            NormalVariableInitializationStatement(
-                variable=variable,
-                expression=normalized_argument,
-            )
-        )
         prestatements.append(
             NormalPushStatement(
-                expression=NormalVariableExpression(
-                    variable=variable,
-                ),
+                expression=normalized_argument,
             ),
         )
-        counter += 1
 
     counter, function_prestatements, function_expression = normalize_expression(
         counter,
