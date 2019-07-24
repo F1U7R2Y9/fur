@@ -280,16 +280,10 @@ def normalize_structure_literal_expression(counter, expression):
 
 
 def normalize_symbol_expression(counter, expression):
-    variable = '${}'.format(counter)
     return (
-        counter + 1,
-        (
-            NormalVariableInitializationStatement(
-                variable=variable,
-                expression=NormalSymbolExpression(symbol=expression.symbol),
-            ),
-        ),
-        NormalVariableExpression(variable=variable),
+        counter,
+        (),
+        NormalSymbolExpression(symbol=expression.symbol),
     )
 
 def normalize_function_call_expression(counter, expression):
@@ -314,19 +308,6 @@ def normalize_function_call_expression(counter, expression):
 
     for ps in function_prestatements:
         prestatements.append(ps)
-
-    if not isinstance(function_expression, NormalVariableExpression):
-        function_variable = '${}'.format(counter)
-
-        prestatements.append(
-            NormalVariableInitializationStatement(
-                variable=function_variable,
-                expression=function_expression,
-            )
-        )
-
-        function_expression = NormalVariableExpression(variable=function_variable)
-        counter += 1
 
     result_variable = '${}'.format(counter)
 

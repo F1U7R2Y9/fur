@@ -56,10 +56,10 @@ def generate_expression(expression):
 
 def generate_function_call(function_call):
     # This gets called twice, so we want to be sure it is efficient and without side effects
-    assert isinstance(function_call.function_expression, transformation.CVariableExpression)
+    assert isinstance(function_call.function_expression, transformation.CSymbolExpression)
 
     # TODO Check the type of the things being called
-    function_expression = generate_variable_expression(function_call.function_expression)
+    function_expression = generate_expression(function_call.function_expression)
     return '{}.instance.closure.call(environmentPool, {}.instance.closure.closed, {}, stack, {}, jump)'.format(
         function_expression,
         function_expression,
