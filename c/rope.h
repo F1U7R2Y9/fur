@@ -21,4 +21,6 @@ Rope* Rope_read(Encoding, FILE);
 
 Rope* Rope_concatenate(Rope* r0, Rope* r1);
 
+size_t Rope_length(Rope*) __attribute__((pure));
+
 #endif

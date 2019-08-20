@@ -87,4 +87,13 @@ Rope* Rope_concatenate(Rope* r0, Rope* r1) {
   return result;
 }
 
+__attribute__((pure)) size_t Rope_length(Rope* self) {
+  switch(self->type) {
+    case ROPETYPE_CONCATENATION:
+      return Rope_length(self->instance.concatenation.r0) + Rope_length(self->instance.concatenation.r0);
+    case ROPETYPE_STRING:
+      return self->instance.string.length;
+  }
+}
+
 #endif
