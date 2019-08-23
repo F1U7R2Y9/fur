@@ -92,14 +92,6 @@ CVariableInitializationStatement = collections.namedtuple(
     ],
 )
 
-CVariableReassignmentStatement = collections.namedtuple(
-    'CVariableReassignmentStatement',
-    [
-        'variable',
-        'expression',
-    ],
-)
-
 CExpressionStatement = collections.namedtuple(
     'CExpressionStatement',
     [
@@ -107,8 +99,8 @@ CExpressionStatement = collections.namedtuple(
     ],
 )
 
-CIfElseStatement = collections.namedtuple(
-    'CIfElseStatement',
+CIfElseExpression = collections.namedtuple(
+    'CIfElseExpression',
     [
         'condition_expression',
         'if_statement_list',
@@ -246,6 +238,7 @@ def transform_list_append_statement(accumulators, expression):
 def transform_expression(accumulators, expression):
     return {
         conversion.CPSFunctionCallExpression: transform_function_call_expression,
+        conversion.CPSIfElseExpression: transform_if_else_expression,
         conversion.CPSIntegerLiteralExpression: transform_integer_literal_expression,
         conversion.CPSLambdaExpression: transform_lambda_expression,
         conversion.CPSListConstructExpression: transform_list_construct_expression,
@@ -285,8 +278,8 @@ def transform_expression_statement(accumulators, statement):
         expression=transform_expression(accumulators, statement.expression),
     )
 
-def transform_if_else_statement(accumulators, statement):
-    return CIfElseStatement(
+def transform_if_else_expression(accumulators, statement):
+    return CIfElseExpression(
         condition_expression=transform_expression(accumulators, statement.condition_expression),
         if_statement_list=tuple(transform_statement(accumulators, s) for s in statement.if_statement_list),
         else_statement_list=tuple(transform_statement(accumulators, s) for s in statement.else_statement_list),
@@ -322,12 +315,6 @@ def transform_variable_initialization_statement(accumulators, statement):
         expression=transform_expression(accumulators, statement.expression),
     )
 
-def transform_variable_reassignment_statement(accumulators, statement):
-    return CVariableReassignmentStatement(
-        variable=statement.variable,
-        expression=transform_expression(accumulators, statement.expression),
-    )
-
 def transform_push_statement(accumulators, statement):
     return CPushStatement(expression=transform_expression(accumulators, statement.expression))
 
@@ -336,12 +323,10 @@ def transform_statement(accumulators, statement):
         conversion.CPSArrayVariableInitializationStatement: transform_array_variable_initialization_statement,
         conversion.CPSAssignmentStatement: transform_symbol_assignment_statement,
         conversion.CPSExpressionStatement: transform_expression_statement,
-        conversion.CPSIfElseStatement: transform_if_else_statement,
         conversion.CPSListAppendStatement: transform_list_append_statement,
         conversion.CPSPushStatement: transform_push_statement,
         conversion.CPSSymbolArrayVariableInitializationStatement: transform_symbol_array_variable_initialization_statement,
         conversion.CPSVariableInitializationStatement: transform_variable_initialization_statement,
-        conversion.CPSVariableReassignmentStatement: transform_variable_reassignment_statement,
     }[type(statement)](accumulators, statement)
 
 

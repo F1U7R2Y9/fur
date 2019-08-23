@@ -80,14 +80,6 @@ NormalVariableInitializationStatement = collections.namedtuple(
     ],
 )
 
-NormalVariableReassignmentStatement = collections.namedtuple(
-    'NormalVariableReassignmentStatement',
-    [
-        'variable',
-        'expression',
-    ],
-)
-
 NormalExpressionStatement = collections.namedtuple(
     'NormalExpressionStatement',
     [
@@ -103,8 +95,8 @@ NormalAssignmentStatement = collections.namedtuple(
     ],
 )
 
-NormalIfElseStatement = collections.namedtuple(
-    'NormalIfElseStatement',
+NormalIfElseExpression = collections.namedtuple(
+    'NormalIfElseExpression',
     [
         'condition_expression',
         'if_statement_list',
@@ -132,7 +124,6 @@ def normalize_lambda_expression(counter, expression):
     _, statement_list = normalize_statement_list(
         0,
         expression.statement_list,
-        assign_result_to='result',
     )
 
     return (
@@ -328,34 +319,23 @@ def normalize_if_expression(counter, expression):
         expression.condition_expression,
     )
 
-    result_variable = '${}'.format(counter)
-    counter += 1
-
     counter, if_statement_list = normalize_statement_list(
         counter,
         expression.if_statement_list,
-        assign_result_to=result_variable,
     )
     counter, else_statement_list = normalize_statement_list(
         counter,
         expression.else_statement_list,
-        assign_result_to=result_variable,
     )
 
     return (
         counter,
-        condition_prestatements + (
-            NormalVariableInitializationStatement(
-                variable=result_variable,
-                expression=NormalVariableExpression(variable='builtin$nil'),
-            ),
-            NormalIfElseStatement(
-                condition_expression=condition_expression,
-                if_statement_list=if_statement_list,
-                else_statement_list=else_statement_list,
-            ),
+        condition_prestatements,
+        NormalIfElseExpression(
+            condition_expression=condition_expression,
+            if_statement_list=if_statement_list,
+            else_statement_list=else_statement_list,
         ),
-        NormalVariableExpression(variable=result_variable),
     )
 
 def normalize_expression(counter, expression):
@@ -401,11 +381,7 @@ def normalize_statement(counter, statement):
     }[type(statement)](counter, statement)
 
 @util.force_generator(tuple)
-def normalize_statement_list(counter, statement_list, **kwargs):
-    assign_result_to = kwargs.pop('assign_result_to', None)
-
-    assert len(kwargs) == 0
-
+def normalize_statement_list(counter, statement_list):
     result_statement_list = []
 
     for statement in statement_list:
@@ -413,19 +389,6 @@ def normalize_statement_list(counter, statement_list, **kwargs):
         for s in prestatements:
             result_statement_list.append(s)
         result_statement_list.append(normalized)
-
-    # TODO The way we fix the last statement is really confusing
-    last_statement = result_statement_list[-1]
-
-    if isinstance(last_statement, NormalExpressionStatement) and isinstance(last_statement.expression, NormalVariableExpression):
-        if assign_result_to is not None:
-            result_expression = result_statement_list.pop().expression
-            result_statement_list.append(
-                NormalVariableReassignmentStatement(
-                    variable=assign_result_to,
-                    expression=result_expression,
-                )
-            )
 
     return (
         counter,

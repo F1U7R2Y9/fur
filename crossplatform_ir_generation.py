@@ -123,6 +123,7 @@ def generate_variable_expression(counters, expression):
 def generate_expression(counters, expression):
     return {
         conversion.CPSFunctionCallExpression: generate_function_call_expression,
+        conversion.CPSIfElseExpression: generate_if_else_expression,
         conversion.CPSIntegerLiteralExpression: generate_integer_literal_expression,
         conversion.CPSLambdaExpression: generate_lambda_expression,
         conversion.CPSStringLiteralExpression: generate_string_literal_expression,
@@ -145,17 +146,26 @@ def generate_expression_statement(counters, statement):
 
     return referenced_entry_list, instruction_list
 
-def generate_if_else_statement(counters, statement):
+def generate_if_else_expression(counters, statement):
     if_counter = counters['if']
     counters['if'] += 1
 
     referenced_entry_list_list = []
+
+    condition_referenced_entry_list, condition_instruction_list = generate_expression(
+        counters,
+        statement.condition_expression,
+    )
 
     if_instruction_list_list = []
     for if_statement in statement.if_statement_list:
         referenced_entry_list, instruction_list = generate_statement(counters, if_statement)
         referenced_entry_list_list.append(referenced_entry_list)
         if_instruction_list_list.append(instruction_list)
+
+    if_instruction_list = flatten(if_instruction_list_list)
+    assert if_instruction_list[-1].instruction == 'drop'
+    if_instruction_list = if_instruction_list[:-1]
 
     else_instruction_list_list = []
 
@@ -164,30 +174,38 @@ def generate_if_else_statement(counters, statement):
         referenced_entry_list_list.append(referenced_entry_list)
         else_instruction_list_list.append(instruction_list)
 
+    else_instruction_list = flatten(else_instruction_list_list)
+    assert else_instruction_list[-1].instruction == 'drop'
+    else_instruction_list = else_instruction_list[:-1]
+
     if_label = '__if${}__'.format(if_counter)
     else_label = '__else${}__'.format(if_counter)
     endif_label = '__endif${}__'.format(if_counter)
 
-    instruction_list = (
-        referenced_entry_list_list,
-        generate_expression(counters, statement.condition_expression) + (
-            CIRInstruction(
-                instruction='jump_if_false',
-                argument=else_label,
-            ),
-            CIRLabel(label=if_label),
-        ) + flatten(if_instruction_list_list) + (
-            CIRInstruction(
-                instruction='jump',
-                argument=endif_label,
-            ),
-            CIRLabel(label=else_label),
-        ) + flatten(else_instruction_list_list) + (
-            CIRLabel(label=endif_label),
+    instruction_list = condition_instruction_list + (
+        CIRInstruction(
+            instruction='jump_if_false',
+            argument=else_label,
         ),
+        CIRInstruction(
+            instruction='jump',
+            argument=if_label,
+        ),
+        CIRLabel(label=if_label),
+    ) + if_instruction_list + (
+        CIRInstruction(
+            instruction='jump',
+            argument=endif_label,
+        ),
+        CIRLabel(label=else_label),
+    ) + else_instruction_list + (
+        CIRLabel(label=endif_label),
     )
 
-    return flatten(referenced_entry_list_list), instruction_list
+    return (
+        condition_referenced_entry_list + flatten(referenced_entry_list_list),
+        instruction_list,
+    )
 
 def generate_assignment_statement(counters, statement):
     referenced_entry_list, instruction_list = generate_expression(
@@ -222,29 +240,12 @@ def generate_variable_initialization_statement(counters, statement):
 
     return referenced_entry_list, instruction_list
 
-def generate_variable_reassignment_statement(counters, statement):
-    referenced_entry_list, instruction_list = generate_expression(
-        counters,
-        statement.expression,
-    )
-
-    instruction_list += (
-        CIRInstruction(
-            instruction='pop',
-            argument=generate_symbol_literal(statement.variable),
-        ),
-    )
-
-    return referenced_entry_list, instruction_list
-
 def generate_statement(counters, statement):
     return {
         conversion.CPSAssignmentStatement: generate_assignment_statement,
         conversion.CPSExpressionStatement: generate_expression_statement,
-        conversion.CPSIfElseStatement: generate_if_else_statement,
         conversion.CPSPushStatement: generate_push_statement,
         conversion.CPSVariableInitializationStatement: generate_variable_initialization_statement,
-        conversion.CPSVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](counters, statement)
 
 def generate(converted):

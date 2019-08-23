@@ -45,6 +45,7 @@ def generate_list_construct_expression(expression):
 def generate_expression(expression):
     return {
         transformation.CFunctionCallExpression: generate_function_call,
+        transformation.CIfElseExpression: generate_if_else_expression,
         transformation.CIntegerLiteral: generate_integer_literal,
         transformation.CLambdaExpression: generate_lambda_expression,
         transformation.CListConstructExpression: generate_list_construct_expression,
@@ -98,17 +99,10 @@ def generate_variable_initialization_statement(statement):
         generate_expression(statement.expression),
     )
 
-def generate_variable_reassignment_statement(statement):
-    return '{} = {};'.format(
-        statement.variable,
-        generate_expression(statement.expression),
-    )
-
-
 def indent(s):
     return '\n'.join(' ' * 2 + l for l in s.split('\n'))
 
-def generate_if_else_statement(statement):
+def generate_if_else_expression(statement):
     # TODO Check that the argument is boolean
     condition_expression = '{}.instance.boolean'.format(
         generate_expression(statement.condition_expression),
@@ -153,13 +147,11 @@ def generate_statement(statement):
     return {
         transformation.CArrayVariableInitializationStatement: generate_array_variable_initialization_statement,
         transformation.CExpressionStatement: generate_expression_statement,
-        transformation.CIfElseStatement: generate_if_else_statement,
         transformation.CListAppendStatement: generate_list_append_statement,
         transformation.CPushStatement: generate_push_statement,
         transformation.CSymbolAssignmentStatement: generate_symbol_assignment_statement,
         transformation.CSymbolArrayVariableInitializationStatement: generate_symbol_array_variable_initialization_statement,
         transformation.CVariableInitializationStatement: generate_variable_initialization_statement,
-        transformation.CVariableReassignmentStatement: generate_variable_reassignment_statement,
     }[type(statement)](statement)
 
 def generate_function_definition(definition):

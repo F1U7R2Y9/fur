@@ -87,8 +87,8 @@ CPSExpressionStatement = collections.namedtuple(
     ),
 )
 
-CPSIfElseStatement = collections.namedtuple(
-    'CPSIfElseStatement',
+CPSIfElseExpression = collections.namedtuple(
+    'CPSIfElseExpression',
     (
         'condition_expression',
         'if_statement_list',
@@ -124,14 +124,6 @@ CPSSymbolArrayVariableInitializationStatement = collections.namedtuple(
     (
         'variable',
         'symbol_list',
-    ),
-)
-
-CPSVariableReassignmentStatement = collections.namedtuple(
-    'CPSVariableReassignmentStatement',
-    (
-        'variable',
-        'expression',
     ),
 )
 
@@ -181,6 +173,7 @@ def convert_variable_expression(expression):
 def convert_expression(expression):
     return {
         normalization.NormalFunctionCallExpression: convert_function_call_expression,
+        normalization.NormalIfElseExpression: convert_if_else_expression,
         normalization.NormalIntegerLiteralExpression: convert_integer_literal_expression,
         normalization.NormalLambdaExpression: convert_lambda_expression,
         normalization.NormalListConstructExpression: convert_list_construct_expression,
@@ -207,11 +200,14 @@ def convert_expression_statement(statement):
         expression=convert_expression(statement.expression),
     )
 
-def convert_if_else_statement(statement):
-    return CPSIfElseStatement(
+def convert_if_else_expression(statement):
+    if_statement_list=tuple(convert_statement(s) for s in statement.if_statement_list)
+    else_statement_list=tuple(convert_statement(s) for s in statement.else_statement_list)
+
+    return CPSIfElseExpression(
         condition_expression=convert_expression(statement.condition_expression),
-        if_statement_list=tuple(convert_statement(s) for s in statement.if_statement_list),
-        else_statement_list=tuple(convert_statement(s) for s in statement.else_statement_list),
+        if_statement_list=if_statement_list,
+        else_statement_list=else_statement_list,
     )
 
 def convert_list_append_statement(statement):
@@ -232,12 +228,6 @@ def convert_variable_initialization_statement(statement):
         expression=convert_expression(statement.expression),
     )
 
-def convert_variable_reassignment_statement(statement):
-    return CPSVariableReassignmentStatement(
-        variable=statement.variable,
-        expression=convert_expression(statement.expression),
-    )
-
 def convert_symbol_array_variable_initialization_statement(statement):
     return CPSSymbolArrayVariableInitializationStatement(
         variable=statement.variable,
@@ -249,15 +239,17 @@ def convert_statement(statement):
         normalization.NormalArrayVariableInitializationStatement: convert_array_variable_initialization_statement,
         normalization.NormalAssignmentStatement: convert_assignment_statement,
         normalization.NormalExpressionStatement: convert_expression_statement,
-        normalization.NormalIfElseStatement: convert_if_else_statement,
         normalization.NormalListAppendStatement: convert_list_append_statement,
         normalization.NormalPushStatement: convert_push_statement,
         normalization.NormalVariableInitializationStatement: convert_variable_initialization_statement,
-        normalization.NormalVariableReassignmentStatement: convert_variable_reassignment_statement,
         normalization.NormalSymbolArrayVariableInitializationStatement: convert_symbol_array_variable_initialization_statement,
     }[type(statement)](statement)
 
+def convert_statement_list(statement_list):
+    return tuple(convert_statement(s) for s in statement_list)
+
+
 def convert(program):
     return CPSProgram(
-        statement_list=tuple(convert_statement(s) for s in program.statement_list),
+        statement_list=convert_statement_list(program.statement_list),
     )
