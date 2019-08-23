@@ -79,8 +79,12 @@ def generate_lambda_expression(counters, expression):
         referenced_entry_list_list.append(referenced_entry_list)
         instruction_list_list.append(instruction_list)
 
+    lambda_body = flatten(instruction_list_list)
+    assert lambda_body[-1].instruction == 'drop'
+    lambda_body = lambda_body[:-1] + (CIRInstruction(instruction='return', argument=None),)
+
     referenced_entry_list_list.append(
-        (CIRLabel(label=label),) + flatten(instruction_list_list),
+        (CIRLabel(label=label),) + lambda_body,
     )
 
     instruction_list = (
@@ -256,17 +260,30 @@ def generate(converted):
         instruction_list_list.append(instruction_list)
 
     return CIRProgram(
-        entry_list=(
+        entry_list=flatten(referenced_entry_list_list) + (
             CIRLabel(label='__main__'),
-        ) + flatten(referenced_entry_list_list) + flatten(instruction_list_list),
+        ) + flatten(instruction_list_list),
     )
+
+NO_ARGUMENT_INSTRUCTIONS = set([
+    'drop',
+    'return',
+])
+
+def format_argument(arg):
+    if arg is None:
+        return 'nil'
+    return arg
 
 def output(program):
     lines = []
 
     for entry in program.entry_list:
         if isinstance(entry, CIRInstruction):
-            lines.append('    {} {}'.format(entry.instruction, entry.argument))
+            if entry.instruction in NO_ARGUMENT_INSTRUCTIONS and entry.argument is None:
+                lines.append('    {}'.format(entry.instruction))
+            else:
+                lines.append('    {} {}'.format(entry.instruction, format_argument(entry.argument)))
 
         if isinstance(entry, CIRLabel):
             lines.append('\n{}:'.format(entry.label))
