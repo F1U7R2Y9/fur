@@ -68,9 +68,6 @@ def generate_lambda_expression(counters, expression):
     counters[expression.name] = name_counter + 1
     label = '{}${}'.format(expression.name, name_counter)
 
-    for argument_name in expression.argument_name_list:
-        import ipdb; ipdb.set_trace()
-
     referenced_entry_list_list = []
     instruction_list_list = []
 
@@ -79,9 +76,16 @@ def generate_lambda_expression(counters, expression):
         referenced_entry_list_list.append(referenced_entry_list)
         instruction_list_list.append(instruction_list)
 
+    # Pop from the stack in reversed order, because arguments were pushed onto
+    # the stack in order
+    argument_bindings = tuple(
+        CIRInstruction(instruction='pop', argument='sym({})'.format(arg))
+        for arg in reversed(expression.argument_name_list)
+    )
+
     lambda_body = flatten(instruction_list_list)
     assert lambda_body[-1].instruction == 'drop'
-    lambda_body = lambda_body[:-1] + (CIRInstruction(instruction='return', argument=None),)
+    lambda_body = argument_bindings + lambda_body[:-1] + (CIRInstruction(instruction='return', argument=None),)
 
     referenced_entry_list_list.append(
         (CIRLabel(label=label),) + lambda_body,
