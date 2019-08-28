@@ -162,8 +162,6 @@ def normalize_list_literal_expression(counter, expression):
 
     prestatements = []
 
-    list_expression = NormalVariableExpression(variable=list_variable)
-
     for item_expression in expression.item_expression_list:
         counter, item_expression_prestatements, normalized = normalize_expression(
             counter,
@@ -179,15 +177,10 @@ def normalize_list_literal_expression(counter, expression):
             )
         )
 
-    prestatements.append(NormalVariableInitializationStatement(
-        variable=list_variable,
-        expression=NormalListConstructExpression(allocate=len(expression.item_expression_list)),
-    ))
-
     return (
         counter,
         tuple(prestatements),
-        list_expression,
+        NormalListConstructExpression(allocate=len(expression.item_expression_list)),
     )
 
 def normalize_string_literal_expression(counter, expression):
