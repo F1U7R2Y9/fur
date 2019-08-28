@@ -160,12 +160,7 @@ def normalize_list_literal_expression(counter, expression):
     list_variable = '${}'.format(counter)
     counter += 1
 
-    prestatements = [
-        NormalVariableInitializationStatement(
-            variable=list_variable,
-            expression=NormalListConstructExpression(allocate=len(expression.item_expression_list)),
-        ),
-    ]
+    prestatements = []
 
     list_expression = NormalVariableExpression(variable=list_variable)
 
@@ -179,11 +174,15 @@ def normalize_list_literal_expression(counter, expression):
             prestatements.append(p)
 
         prestatements.append(
-            NormalListAppendStatement(
-                list_expression=list_expression,
-                item_expression=normalized,
+            NormalPushStatement(
+                expression=normalized,
             )
         )
+
+    prestatements.append(NormalVariableInitializationStatement(
+        variable=list_variable,
+        expression=NormalListConstructExpression(allocate=len(expression.item_expression_list)),
+    ))
 
     return (
         counter,

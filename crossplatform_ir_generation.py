@@ -97,6 +97,14 @@ def generate_lambda_expression(counters, expression):
 
     return flatten(referenced_entry_list_list), instruction_list
 
+def generate_list_construct_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
+        instruction='list',
+        argument=2,
+    ),)
+    return referenced_entry_list, instruction_list
+
 def generate_string_literal_expression(counters, expression):
     referenced_entry_list = ()
     instruction_list = (CIRInstruction(
@@ -130,6 +138,7 @@ def generate_expression(counters, expression):
         conversion.CPSIfElseExpression: generate_if_else_expression,
         conversion.CPSIntegerLiteralExpression: generate_integer_literal_expression,
         conversion.CPSLambdaExpression: generate_lambda_expression,
+        conversion.CPSListConstructExpression: generate_list_construct_expression,
         conversion.CPSStringLiteralExpression: generate_string_literal_expression,
         conversion.CPSSymbolExpression: generate_symbol_expression,
         conversion.CPSVariableExpression: generate_variable_expression,
