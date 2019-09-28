@@ -60,13 +60,18 @@ def generate_integer_literal_expression(counters, expression):
 
     return referenced_entry_list, instruction_list
 
-def generate_lambda_expression(counters, expression):
-    if expression.name is None or 'lambda' in expression.name.lower():
-        import ipdb; ipdb.set_trace()
+def escape_name(name):
+    return name.replace('$','$$').replace('_','$')
 
-    name_counter = counters.get(expression.name, 0)
+def generate_lambda_expression(counters, expression):
+    if expression.name is None:
+        name = '__lambda__'
+    else:
+        name = escape_name(expression.name)
+
+    name_counter = counters.get(name, 0)
     counters[expression.name] = name_counter + 1
-    label = '{}${}'.format(expression.name, name_counter)
+    label = '{}${}'.format(name, name_counter)
 
     referenced_entry_list_list = []
     instruction_list_list = []
