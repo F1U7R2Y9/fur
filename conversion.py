@@ -45,13 +45,18 @@ CPSStructureLiteralExpression = collections.namedtuple(
     'CPSStructureLiteralExpression',
     (
         'field_count',
-        'symbol_list_variable',
-        'value_list_variable',
     ),
 )
 
 CPSSymbolExpression = collections.namedtuple(
     'CPSSymbolExpression',
+    (
+        'symbol',
+    ),
+)
+
+CPSSymbolLiteralExpression = collections.namedtuple(
+    'CPSSymbolLiteralExpression',
     (
         'symbol',
     ),
@@ -160,12 +165,13 @@ def convert_string_literal_expression(expression):
 def convert_structure_literal_expression(expression):
     return CPSStructureLiteralExpression(
         field_count=expression.field_count,
-        symbol_list_variable=expression.symbol_list_variable,
-        value_list_variable=expression.value_list_variable,
     )
 
 def convert_symbol_expression(expression):
     return CPSSymbolExpression(symbol=expression.symbol)
+
+def convert_symbol_literal_expression(expression):
+    return CPSSymbolLiteralExpression(symbol=expression.symbol)
 
 def convert_variable_expression(expression):
     return CPSVariableExpression(variable=expression.variable)
@@ -180,14 +186,9 @@ def convert_expression(expression):
         normalization.NormalStringLiteralExpression: convert_string_literal_expression,
         normalization.NormalStructureLiteralExpression: convert_structure_literal_expression,
         normalization.NormalSymbolExpression: convert_symbol_expression,
+        normalization.NormalSymbolLiteralExpression: convert_symbol_literal_expression,
         normalization.NormalVariableExpression: convert_variable_expression,
     }[type(expression)](expression)
-
-def convert_array_variable_initialization_statement(statement):
-    return CPSArrayVariableInitializationStatement(
-        variable=statement.variable,
-        items=tuple(convert_expression(e) for e in statement.items),
-    )
 
 def convert_assignment_statement(statement):
     return CPSAssignmentStatement(
@@ -228,21 +229,13 @@ def convert_variable_initialization_statement(statement):
         expression=convert_expression(statement.expression),
     )
 
-def convert_symbol_array_variable_initialization_statement(statement):
-    return CPSSymbolArrayVariableInitializationStatement(
-        variable=statement.variable,
-        symbol_list=statement.symbol_list,
-    )
-
 def convert_statement(statement):
     return {
-        normalization.NormalArrayVariableInitializationStatement: convert_array_variable_initialization_statement,
         normalization.NormalAssignmentStatement: convert_assignment_statement,
         normalization.NormalExpressionStatement: convert_expression_statement,
         normalization.NormalListAppendStatement: convert_list_append_statement,
         normalization.NormalPushStatement: convert_push_statement,
         normalization.NormalVariableInitializationStatement: convert_variable_initialization_statement,
-        normalization.NormalSymbolArrayVariableInitializationStatement: convert_symbol_array_variable_initialization_statement,
     }[type(statement)](statement)
 
 def convert_statement_list(statement_list):

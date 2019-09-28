@@ -114,10 +114,28 @@ def generate_string_literal_expression(counters, expression):
 
     return referenced_entry_list, instruction_list
 
+def generate_structure_literal_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
+        instruction='structure',
+        argument=expression.field_count,
+    ),)
+
+    return referenced_entry_list, instruction_list
+
 def generate_symbol_expression(counters, expression):
     referenced_entry_list = ()
     instruction_list = (CIRInstruction(
         instruction='push',
+        argument=generate_symbol_literal(expression.symbol),
+    ),)
+
+    return referenced_entry_list, instruction_list
+
+def generate_symbol_literal_expression(counters, expression):
+    referenced_entry_list = ()
+    instruction_list = (CIRInstruction(
+        instruction='push_value',
         argument=generate_symbol_literal(expression.symbol),
     ),)
 
@@ -140,7 +158,9 @@ def generate_expression(counters, expression):
         conversion.CPSLambdaExpression: generate_lambda_expression,
         conversion.CPSListConstructExpression: generate_list_construct_expression,
         conversion.CPSStringLiteralExpression: generate_string_literal_expression,
+        conversion.CPSStructureLiteralExpression: generate_structure_literal_expression,
         conversion.CPSSymbolExpression: generate_symbol_expression,
+        conversion.CPSSymbolLiteralExpression: generate_symbol_literal_expression,
         conversion.CPSVariableExpression: generate_variable_expression,
     }[type(expression)](counters, expression)
 

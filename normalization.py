@@ -35,9 +35,16 @@ NormalStringLiteralExpression = collections.namedtuple(
 
 NormalSymbolExpression = collections.namedtuple(
     'NormalSymbolExpression',
-    [
+    (
         'symbol',
-    ],
+    ),
+)
+
+NormalSymbolLiteralExpression = collections.namedtuple(
+    'NormalSymbolLiteralExpression',
+    (
+        'symbol',
+    ),
 )
 
 NormalPushStatement = collections.namedtuple(
@@ -53,22 +60,6 @@ NormalFunctionCallExpression = collections.namedtuple(
         'metadata',
         'function_expression',
         'argument_count',
-    ],
-)
-
-NormalArrayVariableInitializationStatement = collections.namedtuple(
-    'NormalArrayVariableInitializationStatement',
-    [
-        'variable',
-        'items',
-    ],
-)
-
-NormalSymbolArrayVariableInitializationStatement = collections.namedtuple(
-    'NormalSymbolArrayVariableInitializationStatement',
-    [
-        'variable',
-        'symbol_list',
     ],
 )
 
@@ -192,69 +183,40 @@ def normalize_string_literal_expression(counter, expression):
 
 NormalStructureLiteralExpression = collections.namedtuple(
     'NormalStructureLiteralExpression',
-    [
+    (
         'field_count',
-        'symbol_list_variable',
-        'value_list_variable',
-    ],
+    ),
 )
 
 def normalize_structure_literal_expression(counter, expression):
     prestatements = []
-    field_symbol_array = []
-    field_value_array = []
 
-    for symbol_expression_pair in expression.fields:
-        counter, field_prestatements, field_expression = normalize_expression(
+    for field in expression.fields:
+        counter, field_expression_prestatements, field_expression = normalize_expression(
             counter,
-            symbol_expression_pair.expression,
+            field.expression,
         )
 
-        for p in field_prestatements:
+        for p in field_expression_prestatements:
             prestatements.append(p)
 
-        field_symbol_array.append(symbol_expression_pair.symbol)
-        field_value_array.append(field_expression)
+        prestatements.append(NormalPushStatement(
+            expression=field_expression,
+        ))
 
-    symbol_array_variable = '${}'.format(counter)
-    counter += 1
-
-    prestatements.append(
-        NormalSymbolArrayVariableInitializationStatement(
-            variable=symbol_array_variable,
-            symbol_list=tuple(field_symbol_array),
-        )
-    )
-
-    value_array_variable = '${}'.format(counter)
-    counter += 1
-
-    prestatements.append(
-        NormalArrayVariableInitializationStatement(
-            variable=value_array_variable,
-            items=tuple(field_value_array),
-        )
-    )
-
-    variable = '${}'.format(counter)
-
-    prestatements.append(
-        NormalVariableInitializationStatement(
-            variable=variable,
-            expression=NormalStructureLiteralExpression(
-                field_count=len(expression.fields),
-                symbol_list_variable=symbol_array_variable,
-                value_list_variable=value_array_variable,
+        prestatements.append(NormalPushStatement(
+            expression=NormalSymbolLiteralExpression(
+                symbol=field.symbol,
             ),
-        )
-    )
+        ))
 
     return (
-        counter + 1,
+        counter,
         tuple(prestatements),
-        NormalVariableExpression(variable=variable),
+        NormalStructureLiteralExpression(
+            field_count=len(expression.fields),
+        ),
     )
-
 
 def normalize_symbol_expression(counter, expression):
     return (
