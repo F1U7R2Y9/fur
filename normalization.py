@@ -139,14 +139,6 @@ NormalListConstructExpression = collections.namedtuple(
     ],
 )
 
-NormalListAppendStatement = collections.namedtuple(
-    'NormalListAppendStatement',
-    [
-        'list_expression',
-        'item_expression',
-    ],
-)
-
 def normalize_list_literal_expression(counter, expression):
     list_variable = '${}'.format(counter)
     counter += 1
