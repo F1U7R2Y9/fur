@@ -101,14 +101,6 @@ CPSIfElseExpression = collections.namedtuple(
     ),
 )
 
-CPSListAppendStatement = collections.namedtuple(
-    'CPSListAppendStatement',
-    (
-        'list_expression',
-        'item_expression',
-    ),
-)
-
 CPSPushStatement = collections.namedtuple(
     'CPSPushStatement',
     (
@@ -211,13 +203,6 @@ def convert_if_else_expression(statement):
         else_statement_list=else_statement_list,
     )
 
-def convert_list_append_statement(statement):
-    return CPSListAppendStatement(
-        list_expression=convert_expression(statement.list_expression),
-        item_expression=convert_expression(statement.item_expression),
-    )
-
-
 def convert_push_statement(statement):
     return CPSPushStatement(
         expression=convert_expression(statement.expression),
@@ -233,7 +218,6 @@ def convert_statement(statement):
     return {
         normalization.NormalAssignmentStatement: convert_assignment_statement,
         normalization.NormalExpressionStatement: convert_expression_statement,
-        normalization.NormalListAppendStatement: convert_list_append_statement,
         normalization.NormalPushStatement: convert_push_statement,
         normalization.NormalVariableInitializationStatement: convert_variable_initialization_statement,
     }[type(statement)](statement)

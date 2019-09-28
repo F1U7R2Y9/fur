@@ -3,6 +3,7 @@ import sys
 import conversion
 import crossplatform_ir_generation
 import desugaring
+import c_generation
 import normalization
 import optimization
 import parsing
@@ -19,15 +20,15 @@ desugared = desugaring.desugar(parsed)
 normalized = normalization.normalize(desugared)
 converted = conversion.convert(normalized)
 
-assert source_path.endswith('.fur')
-destination_path = source_path + '.c'
-
-with open(destination_path, 'w') as f:
-    pass
-    #f.write(generated)
-
-# This is the crossplatform IR generation path
 crossplatform_ir = crossplatform_ir_generation.generate(converted)
 optimized = optimization.optimize(crossplatform_ir)
 outputted = crossplatform_ir_generation.output(optimized)
 print(outputted)
+
+generated = c_generation.generate(optimized)
+
+assert source_path.endswith('.fur')
+destination_path = source_path + '.c'
+
+with open(destination_path, 'w') as f:
+    f.write(generated)

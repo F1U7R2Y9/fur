@@ -54,7 +54,7 @@ def generate_function_call_expression(counters, expression):
 def generate_integer_literal_expression(counters, expression):
     referenced_entry_list = ()
     instruction_list = (CIRInstruction(
-        instruction='push_value',
+        instruction='push_integer',
         argument=generate_integer_literal(expression.integer),
     ),)
 
@@ -113,7 +113,7 @@ def generate_list_construct_expression(counters, expression):
 def generate_string_literal_expression(counters, expression):
     referenced_entry_list = ()
     instruction_list = (CIRInstruction(
-        instruction='push_value',
+        instruction='push_string',
         argument=generate_string_literal(expression.string),
     ),)
 
@@ -140,7 +140,7 @@ def generate_symbol_expression(counters, expression):
 def generate_symbol_literal_expression(counters, expression):
     referenced_entry_list = ()
     instruction_list = (CIRInstruction(
-        instruction='push_value',
+        instruction='push_symbol',
         argument=generate_symbol_literal(expression.symbol),
     ),)
 
@@ -301,7 +301,9 @@ def generate(converted):
     return CIRProgram(
         entry_list=flatten(referenced_entry_list_list) + (
             CIRLabel(label='__main__'),
-        ) + flatten(instruction_list_list),
+        ) + flatten(instruction_list_list) + (
+            CIRInstruction(instruction='end', argument=None),
+        )
     )
 
 NO_ARGUMENT_INSTRUCTIONS = set([
