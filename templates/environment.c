@@ -7,6 +7,8 @@ struct _EnvironmentNode {
 };
 
 struct Environment {
+  size_t referenceCount;
+  Environment* shadowed;
   _EnvironmentNode* top;
 };
 
@@ -17,11 +19,15 @@ struct Environment_get_Result {
   Object result;
 };
 
-void Environment_initialize(Environment* self) {
+void Environment_initialize(Environment* self, Environment* shadowed) {
+  self->referenceCount = 1;
+  self->shadowed = shadowed;
   self->top = NULL;
 }
 
 void Environment_deinitialize(Environment* self) {
+  assert(self->referenceCount == 0);
+
   while(self->top != NULL) {
     _EnvironmentNode* en = self->top;
     self->top = en->next;
@@ -30,18 +36,26 @@ void Environment_deinitialize(Environment* self) {
   }
 }
 
-Environment* Environment_construct() {
+Environment* Environment_construct(Environment* shadowed) {
   Environment* result = malloc(sizeof(Environment));
-  Environment_initialize(result);
+  Environment_initialize(result, shadowed);
   return result;
 }
 
-void Environment_destruct(Environment* self) {
-  Environment_deinitialize(self);
-  free(self);
+Environment* Environment_reference(Environment* self) {
+  self->referenceCount++; // TODO Do we need to make this thread safe?
+  return self;
 }
 
-Environment_get_Result Environment_get(Environment* self, char* symbol) {
+void Environment_destruct(Environment* self) {
+  self->referenceCount--; // TODO Do we need to make this thread safe?
+  if(self->referenceCount == 0) {
+    Environment_deinitialize(self);
+    free(self);
+  }
+}
+
+Environment_get_Result Environment_getShallow(Environment* self, char* symbol) {
   for(_EnvironmentNode* current = self->top; current != NULL; current = current->next) {
     if(strcmp(current->symbol, symbol) == 0) {
       return (Environment_get_Result) { true, current->value };
@@ -50,8 +64,16 @@ Environment_get_Result Environment_get(Environment* self, char* symbol) {
   return (Environment_get_Result) { false, BUILTIN_NIL };
 }
 
+Environment_get_Result Environment_get(Environment* self, char* symbol) {
+  for(; self != NULL; self = self->shadowed) {
+    Environment_get_Result result = Environment_getShallow(self, symbol);
+    if(result.found) return result;
+  }
+  return (Environment_get_Result) { false, BUILTIN_NIL };
+}
+
 void Environment_set(Environment* self, char* symbol, Object value) {
-  assert(!(Environment_get(self, symbol).found));
+  assert(!(Environment_getShallow(self, symbol).found));
 
   _EnvironmentNode* en = malloc(sizeof(_EnvironmentNode));
   en->symbol = symbol;

@@ -23,8 +23,12 @@ enum Builtin {
   PRINT
 };
 
+struct Object;
+typedef struct Object Object;
 struct Environment;
 typedef struct Environment Environment;
+struct Thread;
+typedef struct Thread Thread;
 
 struct Closure;
 typedef struct Closure Closure;
@@ -43,8 +47,6 @@ union Value {
   int32_t integer;
 };
 
-struct Object;
-typedef struct Object Object;
 struct Object {
   Type type;
   Value value;
@@ -59,39 +61,35 @@ void Object_deinitialize(Object* self) {
 {% include "stack.c" %}
 {% include "frame.c" %}
 
-struct Thread;
-typedef struct Thread Thread;
 struct Thread {
-  Environment* environment;
+  Frame frame;
   Stack stack;
-  size_t programCounter;
 };
 
 void Thread_initialize(Thread* self, size_t programCounter) {
-  self->environment = Environment_construct();
+  Frame_initialize(&(self->frame), Environment_construct(NULL), NULL, programCounter);
   Stack_initialize(&(self->stack));
-  self->programCounter = programCounter;
 }
 
 void Thread_deinitialize(Thread* self) {
-  Environment_destruct(self->environment);
+  Frame_deinitialize(&(self->frame));
   Stack_deinitialize(&(self->stack));
 }
 
 Environment* Thread_getEnvironment(Thread* self) {
-  return self->environment;
+  return self->frame.environment;
 }
 
 void Thread_setProgramCounter(Thread* self, size_t programCounter) {
-  self->programCounter = programCounter;
+  self->frame.programCounter = programCounter;
 }
 
 void Thread_incrementProgramCounter(Thread* self) {
-  self->programCounter++;
+  self->frame.programCounter++;
 }
 
 size_t Thread_getProgramCounter(Thread* self) {
-  return self->programCounter;
+  return self->frame.programCounter;
 }
 
 union Argument;
@@ -179,7 +177,14 @@ void callBuiltin(Thread* thread, Builtin b, size_t argumentCount) {
 void callClosure(Thread* thread, Closure closure, size_t argumentCount) {
   assert(argumentCount == 0);
 
-
+  Frame* returnFrame = malloc(sizeof(Frame));
+  *returnFrame = thread->frame;
+  Frame_initialize(
+    &(thread->frame),
+    Environment_construct(Environment_reference(closure.environment)),
+    returnFrame,
+    closure.entry - 1 // We will increment the frame immediately after this
+  );
 }
 
 void inst_call(Thread* thread, Argument argument) {
@@ -350,7 +355,18 @@ void inst_push_string(Thread* thread, Argument argument) {
 {% endwith %}
 
 void inst_return(Thread* thread, Argument argument) {
-  assert(false);
+  Frame* returnFrame = thread->frame.returnFrame;
+
+  Frame_deinitialize(&(thread->frame));
+
+  Frame_initialize(
+    &(thread->frame),
+    returnFrame->environment,
+    returnFrame->returnFrame,
+    returnFrame->programCounter
+  );
+
+  free(returnFrame);
 }
 
 struct Instruction;
