@@ -10,6 +10,7 @@ typedef enum Type Type;
 enum Type {
   BOOLEAN,
   BUILTIN,
+  CLOSURE,
   INTEGER,
   STRING
 };
@@ -22,10 +23,21 @@ enum Builtin {
   PRINT
 };
 
+struct Environment;
+typedef struct Environment Environment;
+
+struct Closure;
+typedef struct Closure Closure;
+struct Closure {
+  Environment* environment;
+  size_t entry;
+};
+
 union Value;
 typedef union Value Value;
 union Value {
   Builtin builtin;
+  Closure closure;
   bool boolean;
   char* string;
   int32_t integer;
@@ -74,78 +86,92 @@ union Argument {
   int32_t integer;
 };
 
-void call(struct Thread* thread, Argument argument) {
+void callBuiltinPow(Thread* thread, size_t argumentCount) {
+  assert(argumentCount == 2);
+  assert(!Stack_isEmpty(&(thread->stack)));
+  Object exponent = Stack_pop(&(thread->stack));
+  assert(exponent.type == INTEGER);
+  assert(exponent.value.integer >= 0);
+
+  assert(!Stack_isEmpty(&(thread->stack)));
+  Object base = Stack_pop(&(thread->stack));
+  assert(base.type == INTEGER);
+
+  Object result;
+  result.type = INTEGER;
+  result.value.integer = 1;
+
+  while(exponent.value.integer > 0) {
+    result.value.integer *= base.value.integer;
+    exponent.value.integer--;
+  }
+
+  Stack_push(&(thread->stack), result);
+}
+
+void callBuiltinPrint(Thread* thread, size_t argumentCount) {
+  assert(argumentCount > 0);
+
+  Object arguments[argumentCount];
+  size_t count;
+
+  for(count = 0; count < argumentCount; count++) {
+    assert(!Stack_isEmpty(&(thread->stack)));
+    arguments[argumentCount - count - 1] = Stack_pop(&(thread->stack));
+  }
+
+  for(count = 0; count < argumentCount; count ++) {
+    Object arg = arguments[count];
+
+    switch(arg.type) {
+      case BOOLEAN:
+        if(arg.value.boolean) printf("true");
+        else printf("false");
+        break;
+
+      case INTEGER:
+        printf("%i", arg.value.integer);
+        break;
+
+      case STRING:
+        printf("%s", arg.value.string);
+        break;
+
+      default:
+        assert(0);
+    }
+  }
+
+  Stack_push(&(thread->stack), BUILTIN_NIL);
+}
+
+void callBuiltin(Thread* thread, Builtin b, size_t argumentCount) {
+  switch(b) {
+    case POW:
+      callBuiltinPow(thread, argumentCount);
+      break;
+    case PRINT:
+      callBuiltinPrint(thread, argumentCount);
+      break;
+
+    default:
+      assert(false);
+  }
+}
+
+void inst_call(struct Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object f = Stack_pop(&(thread->stack));
   size_t argumentCount = argument.label;
 
   switch(f.type) {
     case BUILTIN:
-      switch(f.value.builtin) {
-        case POW:
-          {
-            assert(argumentCount == 2);
-            assert(!Stack_isEmpty(&(thread->stack)));
-            Object exponent = Stack_pop(&(thread->stack));
-            assert(exponent.type == INTEGER);
-            assert(exponent.value.integer >= 0);
+      callBuiltin(thread, f.value.builtin, argumentCount);
+      break;
 
-            assert(!Stack_isEmpty(&(thread->stack)));
-            Object base = Stack_pop(&(thread->stack));
-            assert(base.type == INTEGER);
-
-            Object result;
-            result.type = INTEGER;
-            result.value.integer = 1;
-
-            while(exponent.value.integer > 0) {
-              result.value.integer *= base.value.integer;
-              exponent.value.integer--;
-            }
-
-            Stack_push(&(thread->stack), result);
-          }
-          break;
-        case PRINT:
-          {
-            assert(argumentCount > 0);
-
-            Object arguments[argumentCount];
-            size_t count;
-
-            for(count = 0; count < argumentCount; count++) {
-              assert(!Stack_isEmpty(&(thread->stack)));
-              arguments[argumentCount - count - 1] = Stack_pop(&(thread->stack));
-            }
-
-            for(count = 0; count < argumentCount; count ++) {
-              Object arg = arguments[count];
-
-              switch(arg.type) {
-                case BOOLEAN:
-                  if(arg.value.boolean) printf("true");
-                  else printf("false");
-                  break;
-
-                case INTEGER:
-                  printf("%i", arg.value.integer);
-                  break;
-
-                case STRING:
-                  printf("%s", arg.value.string);
-                  break;
-
-                default:
-                  assert(0);
-              }
-            }
-
-            Stack_push(&(thread->stack), BUILTIN_NIL);
-          }
-          break;
-
-        default:
-          assert(false);
+    case CLOSURE:
+      {
+        assert(false);
       }
       break;
 
@@ -158,14 +184,17 @@ void call(struct Thread* thread, Argument argument) {
   {% include "arithmetic_instruction.c" %}
 {% endwith %}
 
+void inst_close(Thread* thread, Argument argument) {
+  assert(false);
+}
 
-void drop(struct Thread* thread, Argument argument) {
+void inst_drop(Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
   Object_deinitialize(&result);
 }
 
-void end(struct Thread* thread, Argument argument) {
+void inst_end(struct Thread* thread, Argument argument) {
 }
 
 {% with name='eq', operation='==' %}
@@ -184,17 +213,17 @@ void end(struct Thread* thread, Argument argument) {
   {% include "arithmetic_instruction.c" %}
 {% endwith %}
 
-void jump(Thread* thread, Argument argument) {
+void inst_jump(Thread* thread, Argument argument) {
   thread->program_counter = argument.label - 1; // We will increment before running
 }
 
-void jump_if_false(Thread* thread, Argument argument) {
+void inst_jump_if_false(Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
   assert(result.type == BOOLEAN);
 
   if(!(result.value.boolean)) {
-    jump(thread, argument);
+    inst_jump(thread, argument);
   }
 }
 
@@ -218,7 +247,7 @@ void jump_if_false(Thread* thread, Argument argument) {
   {% include "comparison_instruction.c" %}
 {% endwith %}
 
-void neg(Thread* thread, Argument argument) {
+void inst_neg(Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
   assert(result.type == INTEGER);
@@ -228,7 +257,7 @@ void neg(Thread* thread, Argument argument) {
   Stack_push(&(thread->stack), result);
 }
 
-void pop(struct Thread* thread, Argument argument) {
+void inst_pop(struct Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   assert(!Stack_isEmpty(&(thread->stack)));
@@ -244,7 +273,7 @@ void pop(struct Thread* thread, Argument argument) {
   Environment_set(thread->environment, argumentString, result);
 }
 
-void push(struct Thread* thread, Argument argument) {
+void inst_push(struct Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   if(strcmp(argumentString, "false") == 0) {
@@ -271,7 +300,7 @@ void push(struct Thread* thread, Argument argument) {
   }
 }
 
-void push_integer(struct Thread* thread, Argument argument) {
+void inst_push_integer(Thread* thread, Argument argument) {
   Object result;
   result.type = INTEGER;
   result.value.integer = argument.integer;
@@ -279,7 +308,7 @@ void push_integer(struct Thread* thread, Argument argument) {
   Stack_push(&(thread->stack), result);
 }
 
-void push_string(struct Thread* thread, Argument argument) {
+void inst_push_string(Thread* thread, Argument argument) {
   Object result;
   result.type = STRING;
   result.value.string = argument.string;
@@ -290,6 +319,10 @@ void push_string(struct Thread* thread, Argument argument) {
 {% with name='sub', operation='-' %}
   {% include "arithmetic_instruction.c" %}
 {% endwith %}
+
+void inst_return(Thread* thread, Argument argument) {
+  assert(false);
+}
 
 struct Instruction;
 typedef const struct Instruction Instruction;
@@ -304,7 +337,7 @@ struct Instruction {
 
 const Instruction program[] = {
 {% for instruction in instruction_list %}
-  (Instruction){ {{ instruction.instruction }}, (Argument){{ generate_argument(instruction) }} },
+  (Instruction){ inst_{{ instruction.instruction }}, (Argument){{ generate_argument(instruction) }} },
 {% endfor %}
 };
 
@@ -312,7 +345,7 @@ int main() {
   Thread thread;
   Thread_initialize(&thread, LABEL___main__);
 
-  for(; program[thread.program_counter].instruction != end; thread.program_counter++) {
+  for(; program[thread.program_counter].instruction != inst_end; thread.program_counter++) {
     program[thread.program_counter].instruction(
       &thread,
       program[thread.program_counter].argument

@@ -6,8 +6,6 @@ struct _EnvironmentNode {
   _EnvironmentNode* next;
 };
 
-struct Environment;
-typedef struct Environment Environment;
 struct Environment {
   _EnvironmentNode* top;
 };

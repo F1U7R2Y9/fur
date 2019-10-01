@@ -52,6 +52,7 @@ def generate_argument(instruction):
         return {
             'add': generate_null_argument_from(2),
             'call': generate_size_t_argument,
+            'close': generate_label_argument,
             'drop': generate_null_argument,
             'end': generate_null_argument,
             'eq': generate_null_argument_from(2),
@@ -70,6 +71,7 @@ def generate_argument(instruction):
             'push': generate_symbol_argument,
             'push_integer': generate_integer_argument,
             'push_string': generate_string_argument,
+            'return': generate_null_argument,
             'sub': generate_null_argument_from(2),
         }[instruction.instruction](instruction.argument)
 
