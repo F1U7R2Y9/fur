@@ -117,6 +117,7 @@ void call(struct Thread* thread, Argument argument) {
                 if(arg.value.boolean) printf("true");
                 else printf("false");
                 break;
+
               case INTEGER:
                 printf("%i", arg.value.integer);
                 break;
@@ -157,8 +158,28 @@ void drop(struct Thread* thread, Argument argument) {
 void end(struct Thread* thread, Argument argument) {
 }
 
+{% with name='eq', operation='==' %}
+  {% include "comparison_instruction.c" %}
+{% endwith %}
+
+{% with name='gt', operation='>' %}
+  {% include "comparison_instruction.c" %}
+{% endwith %}
+
+{% with name='gte', operation='>=' %}
+  {% include "comparison_instruction.c" %}
+{% endwith %}
+
 {% with name='idiv', operation='/' %}
   {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+{% with name='lt', operation='<' %}
+  {% include "comparison_instruction.c" %}
+{% endwith %}
+
+{% with name='lte', operation='<=' %}
+  {% include "comparison_instruction.c" %}
 {% endwith %}
 
 {% with name='mod', operation='%' %}
@@ -167,6 +188,10 @@ void end(struct Thread* thread, Argument argument) {
 
 {% with name='mul', operation='*' %}
   {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+{% with name='neq', operation='!=' %}
+  {% include "comparison_instruction.c" %}
 {% endwith %}
 
 void neg(struct Thread* thread, Argument argument) {

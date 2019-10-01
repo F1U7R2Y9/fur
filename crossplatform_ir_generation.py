@@ -45,6 +45,13 @@ def generate_instruction_name_from_builtin(builtin):
             '__multiply__': 'mul',
             '__negate__': 'neg',
             '__subtract__': 'sub',
+
+            '__eq__': 'eq',
+            '__neq__': 'neq',
+            '__lt__': 'lt',
+            '__lte__': 'lte',
+            '__gt__': 'gt',
+            '__gte__': 'gte',
         }[builtin]
 
     except KeyError:

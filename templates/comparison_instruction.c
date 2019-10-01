@@ -8,7 +8,8 @@ void {{ name }}(struct Thread* thread, const union Argument argument) {
   Object other = Stack_pop(&(thread->stack));
   assert(other.type == INTEGER);
 
-  result.value.integer = other.value.integer {{ operation }} result.value.integer;
+  result.type = BOOLEAN;
+  result.value.boolean = other.value.integer {{ operation }} result.value.integer;
 
   Stack_push(&(thread->stack), result);
 }

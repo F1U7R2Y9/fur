@@ -26,6 +26,13 @@ def generate_null_argument(argument):
     assert argument is None
     return 'NULL'
 
+def generate_null_argument_from(argument_count):
+    def generator(argument):
+        assert isinstance(argument, int)
+        assert argument == argument_count
+        return 'NULL'
+    return generator
+
 def generate_size_t_argument(argument):
     assert isinstance(argument, int)
     return '(size_t){}'.format(argument)
@@ -40,19 +47,25 @@ def generate_symbol_argument(argument):
 def generate_argument(instruction):
     try:
         return {
-            'add': generate_size_t_argument,
+            'add': generate_null_argument_from(2),
+            'call': generate_size_t_argument,
             'drop': generate_null_argument,
             'end': generate_null_argument,
-            'call': generate_size_t_argument,
-            'idiv': generate_size_t_argument,
-            'mod': generate_size_t_argument,
-            'mul': generate_size_t_argument,
-            'neg': generate_size_t_argument,
+            'eq': generate_null_argument_from(2),
+            'gt': generate_null_argument_from(2),
+            'gte': generate_null_argument_from(2),
+            'idiv': generate_null_argument_from(2),
+            'lt': generate_null_argument_from(2),
+            'lte': generate_null_argument_from(2),
+            'mod': generate_null_argument_from(2),
+            'mul': generate_null_argument_from(2),
+            'neg': generate_null_argument_from(1),
+            'neq': generate_null_argument_from(2),
             'pop': generate_symbol_argument,
             'push': generate_symbol_argument,
             'push_integer': generate_integer_argument,
             'push_string': generate_string_argument,
-            'sub': generate_size_t_argument,
+            'sub': generate_null_argument_from(2),
         }[instruction.instruction](instruction.argument)
 
     except KeyError:
