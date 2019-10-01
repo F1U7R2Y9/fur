@@ -17,6 +17,7 @@ enum Builtin;
 typedef enum Builtin Builtin;
 enum Builtin {
   NIL,
+  POW,
   PRINT
 };
 
@@ -74,10 +75,35 @@ union Argument {
 void call(struct Thread* thread, const union Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object f = Stack_pop(&(thread->stack));
+  size_t argumentCount = argument.label;
 
   switch(f.type) {
     case BUILTIN:
       switch(f.value.builtin) {
+        case POW:
+          {
+            assert(argumentCount == 2);
+            assert(!Stack_isEmpty(&(thread->stack)));
+            Object exponent = Stack_pop(&(thread->stack));
+            assert(exponent.type == INTEGER);
+            assert(exponent.value.integer >= 0);
+
+            assert(!Stack_isEmpty(&(thread->stack)));
+            Object base = Stack_pop(&(thread->stack));
+            assert(base.type == INTEGER);
+
+            Object result;
+            result.type = INTEGER;
+            result.value.integer = 1;
+
+            while(exponent.value.integer > 0) {
+              result.value.integer *= base.value.integer;
+              exponent.value.integer--;
+            }
+
+            Stack_push(&(thread->stack), result);
+          }
+          break;
         case PRINT:
           {
             // TODO Handle multiple arguments
@@ -145,7 +171,10 @@ void pop(struct Thread* thread, const union Argument argument) {
 
   if(strcmp(argumentString, "print") == 0) {
     assert(false);
+  } else if(strcmp(argumentString, "pow") == 0) {
+    assert(false);
   }
+
 
   Environment_set(thread->environment, argumentString, result);
 }
@@ -157,6 +186,11 @@ void push(struct Thread* thread, const union Argument argument) {
     Object result;
     result.type = BUILTIN;
     result.value.builtin = PRINT;
+    Stack_push(&(thread->stack), result);
+  } else if(strcmp(argumentString, "pow") == 0) {
+    Object result;
+    result.type = BUILTIN;
+    result.value.builtin = POW;
     Stack_push(&(thread->stack), result);
   } else {
     Environment_get_Result result = Environment_get(thread->environment, argumentString);
