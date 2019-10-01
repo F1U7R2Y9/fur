@@ -2,6 +2,13 @@ import collections
 
 import normalization
 
+CPSBuiltinExpression = collections.namedtuple(
+    'CPSBuiltinExpression',
+    (
+        'symbol',
+    ),
+)
+
 CPSFunctionCallExpression = collections.namedtuple(
     'CPSFunctionCallExpression',
     (
@@ -131,6 +138,9 @@ CPSProgram = collections.namedtuple(
     ),
 )
 
+def convert_builtin_expression(expression):
+    return CPSBuiltinExpression(symbol=expression.symbol)
+
 def convert_function_call_expression(expression):
     return CPSFunctionCallExpression(
         metadata=expression.metadata,
@@ -170,6 +180,7 @@ def convert_variable_expression(expression):
 
 def convert_expression(expression):
     return {
+        normalization.NormalBuiltinExpression: convert_builtin_expression,
         normalization.NormalFunctionCallExpression: convert_function_call_expression,
         normalization.NormalIfElseExpression: convert_if_else_expression,
         normalization.NormalIntegerLiteralExpression: convert_integer_literal_expression,

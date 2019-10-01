@@ -36,7 +36,33 @@ def generate_string_literal(string):
 def generate_symbol_literal(symbol):
     return 'sym({})'.format(symbol)
 
+def generate_instruction_name_from_builtin(builtin):
+    try:
+        return {
+            '__add__': 'add',
+            '__subtract__': 'sub',
+            '__multiply__': 'mul',
+            '__integer_divide__': 'idiv',
+            '__modular_divide__': 'mod',
+        }[builtin]
+
+    except KeyError:
+        import ipdb; ipdb.set_trace()
+
 def generate_function_call_expression(counters, expression):
+    if isinstance(expression.function_expression, conversion.CPSBuiltinExpression):
+        return (
+            (),
+            (
+                CIRInstruction(
+                    instruction=generate_instruction_name_from_builtin(
+                        expression.function_expression.symbol,
+                    ),
+                    argument=expression.argument_count,
+                ),
+            )
+        )
+
     referenced_entry_list, instruction_list = generate_expression(
         counters,
         expression.function_expression,

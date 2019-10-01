@@ -2,6 +2,14 @@ import collections
 
 import parsing
 
+DesugaredBuiltinExpression = collections.namedtuple(
+    'DesugaredBuiltinExpression',
+    (
+        'metadata',
+        'symbol',
+    ),
+)
+
 DesugaredFunctionCallExpression = collections.namedtuple(
     'DesugaredFunctionCallExpression',
     (
@@ -179,7 +187,7 @@ def desugar_infix_expression(expression):
 
     return DesugaredFunctionCallExpression(
         metadata=expression.metadata,
-        function=DesugaredSymbolExpression(
+        function=DesugaredBuiltinExpression(
             metadata=expression.metadata,
             symbol=function,
         ),
@@ -203,7 +211,7 @@ def desugar_lambda_expression(expression):
 def desugar_list_item_expression(expression):
     return DesugaredFunctionCallExpression(
         metadata=expression.metadata,
-        function=DesugaredSymbolExpression(
+        function=DesugaredBuiltinExpression(
             metadata=expression.metadata,
             symbol='__get__',
         ),
@@ -221,7 +229,7 @@ def desugar_list_literal_expression(expression):
 def desugar_negation_expression(expression):
     return DesugaredFunctionCallExpression(
         metadata=expression.metadata,
-        function=DesugaredSymbolExpression(
+        function=DesugaredBuiltinExpression(
             metadata=expression.metadata,
             symbol='__negate__',
         ),

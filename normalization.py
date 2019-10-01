@@ -3,6 +3,13 @@ import collections
 import desugaring
 import util
 
+NormalBuiltinExpression = collections.namedtuple(
+    'NormalBuiltinExpression',
+    (
+        'symbol',
+    ),
+)
+
 NormalVariableExpression = collections.namedtuple(
     'NormalVariableExpression',
     [
@@ -101,6 +108,13 @@ NormalProgram = collections.namedtuple(
         'statement_list',
     ],
 )
+
+def normalize_builtin_expression(counter, expression):
+    return (
+        counter,
+        (),
+        NormalBuiltinExpression(symbol=expression.symbol),
+    )
 
 def normalize_integer_literal_expression(counter, expression):
     return (
@@ -240,23 +254,14 @@ def normalize_function_call_expression(counter, expression):
     for ps in function_prestatements:
         prestatements.append(ps)
 
-    result_variable = '${}'.format(counter)
-
-    prestatements.append(
-        NormalVariableInitializationStatement(
-            variable=result_variable,
-            expression=NormalFunctionCallExpression(
-                metadata=expression.metadata,
-                function_expression=function_expression,
-                argument_count=len(expression.argument_list),
-            ),
-        )
-    )
-
     return (
-        counter + 1,
+        counter,
         tuple(prestatements),
-        NormalVariableExpression(variable=result_variable),
+        NormalFunctionCallExpression(
+            metadata=expression.metadata,
+            function_expression=function_expression,
+            argument_count=len(expression.argument_list),
+        ),
     )
 
 def normalize_if_expression(counter, expression):
@@ -286,6 +291,7 @@ def normalize_if_expression(counter, expression):
 
 def normalize_expression(counter, expression):
     return {
+        desugaring.DesugaredBuiltinExpression: normalize_builtin_expression,
         desugaring.DesugaredFunctionCallExpression: normalize_function_call_expression,
         desugaring.DesugaredIfExpression: normalize_if_expression,
         desugaring.DesugaredIntegerLiteralExpression: normalize_integer_literal_expression,

@@ -40,12 +40,18 @@ def generate_symbol_argument(argument):
 def generate_argument(instruction):
     try:
         return {
+            'add': generate_size_t_argument,
             'drop': generate_null_argument,
             'end': generate_null_argument,
             'call': generate_size_t_argument,
+            'idiv': generate_size_t_argument,
+            'mod': generate_size_t_argument,
+            'mul': generate_size_t_argument,
+            'pop': generate_symbol_argument,
             'push': generate_symbol_argument,
             'push_integer': generate_integer_argument,
             'push_string': generate_string_argument,
+            'sub': generate_size_t_argument,
         }[instruction.instruction](instruction.argument)
 
     except KeyError:

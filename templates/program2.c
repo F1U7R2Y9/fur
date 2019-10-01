@@ -40,21 +40,25 @@ struct Object {
 void Object_deinitialize(Object* self) {
 }
 
+{% include "environment.c" %}
 {% include "stack.c" %}
 
 struct Thread;
 typedef struct Thread Thread;
 struct Thread {
+  Environment* environment;
   Stack stack;
   size_t program_counter;
 };
 
 void Thread_initialize(Thread* self, size_t program_counter) {
+  self->environment = Environment_construct();
   Stack_initialize(&(self->stack));
   self->program_counter = program_counter;
 }
 
 void Thread_deinitialize(Thread* self) {
+  Environment_destruct(self->environment);
   Stack_deinitialize(&(self->stack));
 }
 
@@ -107,6 +111,11 @@ void call(struct Thread* thread, const union Argument argument) {
   }
 }
 
+{% with name='add', operation='+' %}
+  {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+
 void drop(struct Thread* thread, const union Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
@@ -116,19 +125,47 @@ void drop(struct Thread* thread, const union Argument argument) {
 void end(struct Thread* thread, const union Argument argument) {
 }
 
-void push(struct Thread* thread, const union Argument argument) {
+{% with name='idiv', operation='/' %}
+  {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+{% with name='mod', operation='%' %}
+  {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+{% with name='mul', operation='*' %}
+  {% include "arithmetic_instruction.c" %}
+{% endwith %}
+
+void pop(struct Thread* thread, const union Argument argument) {
   char* argumentString = argument.string;
 
-  Object result;
+  assert(!Stack_isEmpty(&(thread->stack)));
+  Object result = Stack_pop(&(thread->stack));
 
   if(strcmp(argumentString, "print") == 0) {
-    result.type = BUILTIN;
-    result.value.builtin = PRINT;
-  } else {
     assert(false);
   }
 
-  Stack_push(&(thread->stack), result);
+  Environment_set(thread->environment, argumentString, result);
+}
+
+void push(struct Thread* thread, const union Argument argument) {
+  char* argumentString = argument.string;
+
+  if(strcmp(argumentString, "print") == 0) {
+    Object result;
+    result.type = BUILTIN;
+    result.value.builtin = PRINT;
+    Stack_push(&(thread->stack), result);
+  } else {
+    Environment_get_Result result = Environment_get(thread->environment, argumentString);
+    if(!result.found) {
+      fprintf(stderr, "Variable `%s` not found", argumentString);
+      assert(false);
+    }
+    Stack_push(&(thread->stack), result.result);
+  }
 }
 
 void push_integer(struct Thread* thread, const union Argument argument) {
@@ -146,6 +183,10 @@ void push_string(struct Thread* thread, const union Argument argument) {
 
   Stack_push(&(thread->stack), result);
 }
+
+{% with name='sub', operation='-' %}
+  {% include "arithmetic_instruction.c" %}
+{% endwith %}
 
 struct Instruction;
 typedef const struct Instruction Instruction;
