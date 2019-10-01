@@ -47,6 +47,7 @@ def generate_argument(instruction):
             'idiv': generate_size_t_argument,
             'mod': generate_size_t_argument,
             'mul': generate_size_t_argument,
+            'neg': generate_size_t_argument,
             'pop': generate_symbol_argument,
             'push': generate_symbol_argument,
             'push_integer': generate_integer_argument,

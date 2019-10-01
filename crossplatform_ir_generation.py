@@ -40,10 +40,11 @@ def generate_instruction_name_from_builtin(builtin):
     try:
         return {
             '__add__': 'add',
-            '__subtract__': 'sub',
-            '__multiply__': 'mul',
             '__integer_divide__': 'idiv',
             '__modular_divide__': 'mod',
+            '__multiply__': 'mul',
+            '__negate__': 'neg',
+            '__subtract__': 'sub',
         }[builtin]
 
     except KeyError:

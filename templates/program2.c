@@ -72,7 +72,7 @@ union Argument {
   int32_t integer;
 };
 
-void call(struct Thread* thread, const union Argument argument) {
+void call(struct Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object f = Stack_pop(&(thread->stack));
   size_t argumentCount = argument.label;
@@ -142,13 +142,13 @@ void call(struct Thread* thread, const union Argument argument) {
 {% endwith %}
 
 
-void drop(struct Thread* thread, const union Argument argument) {
+void drop(struct Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
   Object_deinitialize(&result);
 }
 
-void end(struct Thread* thread, const union Argument argument) {
+void end(struct Thread* thread, Argument argument) {
 }
 
 {% with name='idiv', operation='/' %}
@@ -163,7 +163,17 @@ void end(struct Thread* thread, const union Argument argument) {
   {% include "arithmetic_instruction.c" %}
 {% endwith %}
 
-void pop(struct Thread* thread, const union Argument argument) {
+void neg(struct Thread* thread, Argument argument) {
+  assert(!Stack_isEmpty(&(thread->stack)));
+  Object result = Stack_pop(&(thread->stack));
+  assert(result.type == INTEGER);
+
+  result.value.integer = -(result.value.integer);
+
+  Stack_push(&(thread->stack), result);
+}
+
+void pop(struct Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   assert(!Stack_isEmpty(&(thread->stack)));
@@ -179,7 +189,7 @@ void pop(struct Thread* thread, const union Argument argument) {
   Environment_set(thread->environment, argumentString, result);
 }
 
-void push(struct Thread* thread, const union Argument argument) {
+void push(struct Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   if(strcmp(argumentString, "print") == 0) {
@@ -202,7 +212,7 @@ void push(struct Thread* thread, const union Argument argument) {
   }
 }
 
-void push_integer(struct Thread* thread, const union Argument argument) {
+void push_integer(struct Thread* thread, Argument argument) {
   Object result;
   result.type = INTEGER;
   result.value.integer = argument.integer;
@@ -210,7 +220,7 @@ void push_integer(struct Thread* thread, const union Argument argument) {
   Stack_push(&(thread->stack), result);
 }
 
-void push_string(struct Thread* thread, const union Argument argument) {
+void push_string(struct Thread* thread, Argument argument) {
   Object result;
   result.type = STRING;
   result.value.string = argument.string;
@@ -225,7 +235,7 @@ void push_string(struct Thread* thread, const union Argument argument) {
 struct Instruction;
 typedef const struct Instruction Instruction;
 struct Instruction {
-  void (*instruction)(struct Thread*,const union Argument);
+  void (*instruction)(struct Thread*,Argument);
   Argument argument;
 };
 
