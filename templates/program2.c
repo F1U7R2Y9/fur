@@ -57,24 +57,41 @@ void Object_deinitialize(Object* self) {
 
 {% include "environment.c" %}
 {% include "stack.c" %}
+{% include "frame.c" %}
 
 struct Thread;
 typedef struct Thread Thread;
 struct Thread {
   Environment* environment;
   Stack stack;
-  size_t program_counter;
+  size_t programCounter;
 };
 
-void Thread_initialize(Thread* self, size_t program_counter) {
+void Thread_initialize(Thread* self, size_t programCounter) {
   self->environment = Environment_construct();
   Stack_initialize(&(self->stack));
-  self->program_counter = program_counter;
+  self->programCounter = programCounter;
 }
 
 void Thread_deinitialize(Thread* self) {
   Environment_destruct(self->environment);
   Stack_deinitialize(&(self->stack));
+}
+
+Environment* Thread_getEnvironment(Thread* self) {
+  return self->environment;
+}
+
+void Thread_setProgramCounter(Thread* self, size_t programCounter) {
+  self->programCounter = programCounter;
+}
+
+void Thread_incrementProgramCounter(Thread* self) {
+  self->programCounter++;
+}
+
+size_t Thread_getProgramCounter(Thread* self) {
+  return self->programCounter;
 }
 
 union Argument;
@@ -138,7 +155,7 @@ void callBuiltinPrint(Thread* thread, size_t argumentCount) {
         break;
 
       default:
-        assert(0);
+        assert(false);
     }
   }
 
@@ -159,7 +176,13 @@ void callBuiltin(Thread* thread, Builtin b, size_t argumentCount) {
   }
 }
 
-void inst_call(struct Thread* thread, Argument argument) {
+void callClosure(Thread* thread, Closure closure, size_t argumentCount) {
+  assert(argumentCount == 0);
+
+
+}
+
+void inst_call(Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object f = Stack_pop(&(thread->stack));
   size_t argumentCount = argument.label;
@@ -170,9 +193,7 @@ void inst_call(struct Thread* thread, Argument argument) {
       break;
 
     case CLOSURE:
-      {
-        assert(false);
-      }
+      callClosure(thread, f.value.closure, argumentCount);
       break;
 
     default:
@@ -185,7 +206,12 @@ void inst_call(struct Thread* thread, Argument argument) {
 {% endwith %}
 
 void inst_close(Thread* thread, Argument argument) {
-  assert(false);
+  Object result;
+  result.type = CLOSURE;
+  result.value.closure.environment = Thread_getEnvironment(thread);
+  result.value.closure.entry = argument.label;
+
+  Stack_push(&(thread->stack), result);
 }
 
 void inst_drop(Thread* thread, Argument argument) {
@@ -194,7 +220,7 @@ void inst_drop(Thread* thread, Argument argument) {
   Object_deinitialize(&result);
 }
 
-void inst_end(struct Thread* thread, Argument argument) {
+void inst_end(Thread* thread, Argument argument) {
 }
 
 {% with name='eq', operation='==' %}
@@ -214,7 +240,7 @@ void inst_end(struct Thread* thread, Argument argument) {
 {% endwith %}
 
 void inst_jump(Thread* thread, Argument argument) {
-  thread->program_counter = argument.label - 1; // We will increment before running
+  Thread_setProgramCounter(thread, argument.label - 1); // We will increment before running
 }
 
 void inst_jump_if_false(Thread* thread, Argument argument) {
@@ -257,7 +283,7 @@ void inst_neg(Thread* thread, Argument argument) {
   Stack_push(&(thread->stack), result);
 }
 
-void inst_pop(struct Thread* thread, Argument argument) {
+void inst_pop(Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   assert(!Stack_isEmpty(&(thread->stack)));
@@ -270,10 +296,10 @@ void inst_pop(struct Thread* thread, Argument argument) {
   }
 
 
-  Environment_set(thread->environment, argumentString, result);
+  Environment_set(Thread_getEnvironment(thread), argumentString, result);
 }
 
-void inst_push(struct Thread* thread, Argument argument) {
+void inst_push(Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
   if(strcmp(argumentString, "false") == 0) {
@@ -291,7 +317,10 @@ void inst_push(struct Thread* thread, Argument argument) {
   } else if(strcmp(argumentString, "true") == 0) {
     Stack_push(&(thread->stack), (Object){ BOOLEAN, true });
   } else {
-    Environment_get_Result result = Environment_get(thread->environment, argumentString);
+    Environment_get_Result result = Environment_get(
+      Thread_getEnvironment(thread),
+      argumentString
+    );
     if(!result.found) {
       fprintf(stderr, "Variable `%s` not found", argumentString);
       assert(false);
@@ -327,7 +356,7 @@ void inst_return(Thread* thread, Argument argument) {
 struct Instruction;
 typedef const struct Instruction Instruction;
 struct Instruction {
-  void (*instruction)(struct Thread*,Argument);
+  void (*instruction)(Thread*,Argument);
   Argument argument;
 };
 
@@ -345,10 +374,10 @@ int main() {
   Thread thread;
   Thread_initialize(&thread, LABEL___main__);
 
-  for(; program[thread.program_counter].instruction != inst_end; thread.program_counter++) {
-    program[thread.program_counter].instruction(
+  for(; program[Thread_getProgramCounter(&thread)].instruction != inst_end; Thread_incrementProgramCounter(&thread)) {
+    program[Thread_getProgramCounter(&thread)].instruction(
       &thread,
-      program[thread.program_counter].argument
+      program[Thread_getProgramCounter(&thread)].argument
     );
   }
 
