@@ -8,6 +8,7 @@
 enum Type;
 typedef enum Type Type;
 enum Type {
+  BOOLEAN,
   BUILTIN,
   INTEGER,
   STRING
@@ -25,6 +26,7 @@ union Value;
 typedef union Value Value;
 union Value {
   Builtin builtin;
+  bool boolean;
   char* string;
   int32_t integer;
 };
@@ -111,6 +113,10 @@ void call(struct Thread* thread, Argument argument) {
             Object arg = Stack_pop(&(thread->stack));
 
             switch(arg.type) {
+              case BOOLEAN:
+                if(arg.value.boolean) printf("true");
+                else printf("false");
+                break;
               case INTEGER:
                 printf("%i", arg.value.integer);
                 break;
@@ -192,16 +198,20 @@ void pop(struct Thread* thread, Argument argument) {
 void push(struct Thread* thread, Argument argument) {
   char* argumentString = argument.string;
 
-  if(strcmp(argumentString, "print") == 0) {
-    Object result;
-    result.type = BUILTIN;
-    result.value.builtin = PRINT;
-    Stack_push(&(thread->stack), result);
-  } else if(strcmp(argumentString, "pow") == 0) {
+  if(strcmp(argumentString, "false") == 0) {
+    Stack_push(&(thread->stack), (Object){ BOOLEAN, false });
+  }else if(strcmp(argumentString, "pow") == 0) {
     Object result;
     result.type = BUILTIN;
     result.value.builtin = POW;
     Stack_push(&(thread->stack), result);
+  } else if(strcmp(argumentString, "print") == 0) {
+    Object result;
+    result.type = BUILTIN;
+    result.value.builtin = PRINT;
+    Stack_push(&(thread->stack), result);
+  } else if(strcmp(argumentString, "true") == 0) {
+    Stack_push(&(thread->stack), (Object){ BOOLEAN, true });
   } else {
     Environment_get_Result result = Environment_get(thread->environment, argumentString);
     if(!result.found) {
