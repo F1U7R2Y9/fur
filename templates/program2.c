@@ -174,6 +174,20 @@ void end(struct Thread* thread, Argument argument) {
   {% include "arithmetic_instruction.c" %}
 {% endwith %}
 
+void jump(Thread* thread, Argument argument) {
+  thread->program_counter = argument.label - 1; // We will increment before running
+}
+
+void jump_if_false(Thread* thread, Argument argument) {
+  assert(!Stack_isEmpty(&(thread->stack)));
+  Object result = Stack_pop(&(thread->stack));
+  assert(result.type == BOOLEAN);
+
+  if(!(result.value.boolean)) {
+    jump(thread, argument);
+  }
+}
+
 {% with name='lt', operation='<' %}
   {% include "comparison_instruction.c" %}
 {% endwith %}
@@ -194,7 +208,7 @@ void end(struct Thread* thread, Argument argument) {
   {% include "comparison_instruction.c" %}
 {% endwith %}
 
-void neg(struct Thread* thread, Argument argument) {
+void neg(Thread* thread, Argument argument) {
   assert(!Stack_isEmpty(&(thread->stack)));
   Object result = Stack_pop(&(thread->stack));
   assert(result.type == INTEGER);
@@ -286,7 +300,7 @@ const Instruction program[] = {
 
 int main() {
   Thread thread;
-  Thread_initialize(&thread, 0);
+  Thread_initialize(&thread, LABEL___main__);
 
   for(; program[thread.program_counter].instruction != end; thread.program_counter++) {
     program[thread.program_counter].instruction(

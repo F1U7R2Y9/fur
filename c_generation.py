@@ -22,6 +22,9 @@ def generate_integer_argument(argument):
     assert isinstance(argument, int)
     return '(int32_t){}'.format(argument)
 
+def generate_label_argument(argument):
+    return 'LABEL_{}'.format(argument)
+
 def generate_null_argument(argument):
     assert argument is None
     return 'NULL'
@@ -55,6 +58,8 @@ def generate_argument(instruction):
             'gt': generate_null_argument_from(2),
             'gte': generate_null_argument_from(2),
             'idiv': generate_null_argument_from(2),
+            'jump': generate_label_argument,
+            'jump_if_false': generate_label_argument,
             'lt': generate_null_argument_from(2),
             'lte': generate_null_argument_from(2),
             'mod': generate_null_argument_from(2),
