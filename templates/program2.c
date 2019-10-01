@@ -108,26 +108,36 @@ void call(struct Thread* thread, Argument argument) {
           break;
         case PRINT:
           {
-            // TODO Handle multiple arguments
-            assert(!Stack_isEmpty(&(thread->stack)));
-            Object arg = Stack_pop(&(thread->stack));
+            assert(argumentCount > 0);
 
-            switch(arg.type) {
-              case BOOLEAN:
-                if(arg.value.boolean) printf("true");
-                else printf("false");
-                break;
+            Object arguments[argumentCount];
+            size_t count;
 
-              case INTEGER:
-                printf("%i", arg.value.integer);
-                break;
+            for(count = 0; count < argumentCount; count++) {
+              assert(!Stack_isEmpty(&(thread->stack)));
+              arguments[argumentCount - count - 1] = Stack_pop(&(thread->stack));
+            }
 
-              case STRING:
-                printf("%s", arg.value.string);
-                break;
+            for(count = 0; count < argumentCount; count ++) {
+              Object arg = arguments[count];
 
-              default:
-                assert(0);
+              switch(arg.type) {
+                case BOOLEAN:
+                  if(arg.value.boolean) printf("true");
+                  else printf("false");
+                  break;
+
+                case INTEGER:
+                  printf("%i", arg.value.integer);
+                  break;
+
+                case STRING:
+                  printf("%s", arg.value.string);
+                  break;
+
+                default:
+                  assert(0);
+              }
             }
 
             Stack_push(&(thread->stack), BUILTIN_NIL);
